@@ -1,0 +1,41 @@
+[job]
+job_id = "oracle_employees_to_iceberg"
+job_name = "Oracle Employees to Iceberg"
+enabled = false
+
+[source]
+type = "oracle"
+connection = "oracle_prod"
+schema = "HR"
+table = "EMPLOYEES"
+
+[source.extraction]
+columns = ["EMPLOYEE_ID", "FIRST_NAME", "LAST_NAME", "EMAIL", "HIRE_DATE", "SALARY"]
+
+[source.jdbc]
+fetch_size = 10000
+partition_column = "EMPLOYEE_ID"
+num_partitions = 8
+lower_bound = 1
+upper_bound = 100000
+
+[target]
+type = "iceberg"
+catalog = "spark_catalog"
+database = "analytics_db"
+table = "oracle_employees_iceberg"
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "HIRE_DATE"
+watermark_type = "timestamp"
+
+[keys]
+primary_key = ["EMPLOYEE_ID"]
+merge_keys = ["EMPLOYEE_ID"]
+
+[execution]
+retries = 3
+retry_delay_seconds = 30

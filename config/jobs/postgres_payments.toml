@@ -1,0 +1,79 @@
+[job]
+job_id = "postgres_payments"
+job_name = "PostgreSQL Payments Ingestion"
+enabled = false
+description = "PostgreSQL Payments → Bronze Iceberg"
+
+[source]
+type = "postgresql"
+connection = "postgres_prod"
+schema = "public"
+table = "payments"
+
+[source.extraction]
+columns = ["PAYMENT_ID", "ACCOUNT_ID", "AMOUNT", "PAYMENT_METHOD", "CREATED_AT"]
+
+[source.jdbc]
+fetch_size = 10000
+partition_column = "PAYMENT_ID"
+num_partitions = 4
+lower_bound = 1
+upper_bound = 1000000
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "CREATED_AT"
+watermark_type = "timestamp"
+
+[keys]
+primary_key = ["PAYMENT_ID"]
+merge_keys = ["PAYMENT_ID"]
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "postgres_payments"
+
+[target.partition]
+type = "days"
+column = "CREATED_AT"
+
+[target.maintenance]
+enabled = true
+compact_small_files = true
+target_file_size_mb = 128
+rewrite_manifests = true
+
+[transform.rename]
+PAYMENT_ID = "payment_id"
+ACCOUNT_ID = "account_id"
+AMOUNT = "amount"
+CREATED_AT = "created_at"
+
+[preload]
+enabled = true
+operations = [
+    "validate_source",
+    "validate_target",
+    "check_watermark"
+]
+
+[postload]
+enabled = true
+operations = [
+    "update_watermark",
+    "compact_table",
+    "refresh_metadata"
+]
+
+[data_quality]
+enabled = true
+null_check = ["payment_id", "created_at"]
+unique_check = ["payment_id"]
+minimum_rows = 1
+
+[execution]
+retries = 3
+retry_delay_seconds = 30

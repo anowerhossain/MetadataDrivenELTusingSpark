@@ -1,0 +1,90 @@
+Install the dependency libraries
+================================
+
+
+
+
+Pre-flight Validation (Test credentials & TOML syntax without running Spark)
+============================================================================
+
+Single Job
+==========
+python main.py --config config/jobs/sqlserver_invoices.toml --validate
+
+
+All Jobs
+========
+python main.py --config-dir config/jobs/ --parallel 4 --validate
+
+
+Direct Python Execution
+=======================
+
+Single Job
+==========
+python main.py --config config/jobs/sqlserver_invoices.toml
+
+
+All Jobs
+========
+python main.py --config-dir config/jobs/ --parallel 4 
+
+
+Rerun failed jobs for a specific date
+=====================================
+
+python main.py --rerun-failed 20260813 --parallel 4
+
+
+
+
+Production Cluster Execution (spark-submit on CDP)
+==================================================
+
+
+Single Jobs
+===========
+
+spark-submit \
+  --master yarn \
+  --deploy-mode cluster \
+  --name "ETL_Single_Job_Customer" \
+  --num-executors 5 \
+  --executor-cores 4 \
+  --executor-memory 8g \
+  --driver-memory 4g \
+  --jars /opt/cloudera/parcels/CDH/lib/oracle/ojdbc8.jar,/opt/cloudera/parcels/CDH/lib/mysql/mysql-connector-java.jar,/opt/cloudera/parcels/CDH/lib/postgresql/postgresql-jdbc.jar,/opt/cloudera/parcels/CDH/lib/sqlserver/mssql-jdbc.jar \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.catalog.hive=org.apache.iceberg.spark.SparkCatalog \
+  main.py --config config/jobs/customer.toml
+
+
+
+All Jobs
+=========
+
+spark-submit \
+  --master yarn \
+  --deploy-mode cluster \
+  --name "ETL_Batch_Multi_Source" \
+  --num-executors 20 \
+  --executor-cores 4 \
+  --executor-memory 8g \
+  --driver-memory 4g \
+  --jars /opt/cloudera/parcels/CDH/lib/oracle/ojdbc8.jar,/opt/cloudera/parcels/CDH/lib/mysql/mysql-connector-java.jar,/opt/cloudera/parcels/CDH/lib/postgresql/postgresql-jdbc.jar,/opt/cloudera/parcels/CDH/lib/sqlserver/mssql-jdbc.jar \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.catalog.hive=org.apache.iceberg.spark.SparkCatalog \
+  main.py --config-dir config/jobs/ --parallel 4
+
+
+Run Unit Tests
+==============
+
+To verify the codebase locally
+
+python -m unittest discover tests
+
+
+
+
+

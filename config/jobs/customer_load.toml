@@ -1,0 +1,22 @@
+[job]
+job_id = "customer_load"
+job_name = "Customer Load"
+enabled = false
+
+[source]
+type = "oracle"
+connection = "oracle_prod"
+schema = "BANK"
+table = "CUSTOMER"
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "customer"
+
+[load]
+type = "full"
+
+[spark]
+"spark.sql.shuffle.partitions" = "100"
+"spark.driver.maxResultSize" = "2g"

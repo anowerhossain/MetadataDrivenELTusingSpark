@@ -1,0 +1,46 @@
+[job]
+job_id = "sftp_settlements_excel"
+job_name = "SFTP Card Settlements Excel Ingestion"
+enabled = false
+description = "Ingest card settlement Excel spreadsheets (.xlsx) from SFTP into Apache Iceberg table on CDP"
+
+[source]
+type = "sftp"
+connection = "sftp_prod"
+schema = "sftp_card"
+table = "card_settlements"
+path = "config/jobs/sample_data/"
+file_pattern = "*.xlsx"
+file_format = "excel"
+sheet_name = "0"
+header_row = 0
+audit_table = "hive.etl_audit.sftp_file_audit"
+
+[load]
+type = "FULL"
+
+[target]
+type = "iceberg"
+catalog = "hive"
+database = "edw_bronze"
+table = "sftp_settlements_excel"
+
+[target.partition]
+type = "days"
+column = "dwh_insert_ts"
+
+[target.maintenance]
+enabled = true
+compact_small_files = true
+
+[preload]
+enabled = true
+operations = ["validate_source", "validate_target"]
+
+[postload]
+enabled = true
+operations = ["compact_table", "refresh_metadata"]
+
+[execution]
+retries = 3
+retry_delay_seconds = 30

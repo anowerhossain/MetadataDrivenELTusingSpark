@@ -1,0 +1,65 @@
+[job]
+job_id = "mysql_sales_load23"
+job_name = "MySQL Sales Data Ingestion23"
+enabled = false
+description = "Ingest sales from MySQL into Iceberg Bronze"
+
+[source]
+type = "oracle"
+connection = "mysql_prod"
+schema = "sales_db1"
+table = "orders"
+
+[source.extraction]
+columns = ['ORDER_ID', 'CUSTOMER_ID', 'ORDER_AMOUNT', 'CREATED_AT']
+
+[source.jdbc]
+fetch_size = 10000
+partition_column = "ORDER_ID"
+num_partitions = 4
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "CREATED_AT"
+watermark_type = "timestamp"
+
+[keys]
+primary_key = ['ORDER_ID']
+merge_keys = ['ORDER_ID']
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "mysql_orders"
+
+[target.partition]
+type = "days"
+column = "CREATED_AT"
+
+[target.maintenance]
+enabled = true
+compact_small_files = true
+target_file_size_mb = 128
+rewrite_manifests = true
+
+[preload]
+enabled = true
+operations = ["validate_source", "validate_target", "check_watermark"]
+
+[postload]
+enabled = true
+operations = ["update_watermark", "compact_table", "refresh_metadata"]
+
+[data_quality]
+enabled = true
+null_check = ['order_id', 'created_at']
+unique_check = ['order_id']
+minimum_rows = 1
+
+[execution]
+retries = 4
+retry_delay_seconds = 60
+backoff_multiplier = 2.0
+exponential_backoff = true

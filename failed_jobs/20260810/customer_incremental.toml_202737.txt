@@ -1,0 +1,29 @@
+FAILURE RECORD TIMESTAMP: 2026-08-10T20:27:37.809183+00:00
+JOB ID                 : CONFIG_VALIDATION_FAILURE
+CONFIG PATH            : C:\Users\SUNDARBAN IT\Documents\Extraction\config\jobs\customer_incremental.toml
+ERROR TYPE             : ConfigError
+ERROR MESSAGE          : Connection validation failed: Oracle connection 'oracle_prod' error: Missing environment variable 'ORACLE_PROD_JDBC_URL' (or 'ORACLE_PROD_HOST' and 'ORACLE_PROD_SERVICE_NAME').
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\main.py", line 55, in validate_config_file
+    v_obj_conn = ConnectionResolver.resolve(v_obj_config.source)
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\src\connectors\connection_resolver.py", line 26, in resolve
+    return OracleConnectionResolver.resolve(source_config)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\src\connectors\oracle_connection.py", line 70, in resolve
+    raise ConfigError(
+    ...<2 lines>...
+    )
+src.config.config_schema.ConfigError: Oracle connection 'oracle_prod' error: Missing environment variable 'ORACLE_PROD_JDBC_URL' (or 'ORACLE_PROD_HOST' and 'ORACLE_PROD_SERVICE_NAME').
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\main.py", line 82, in run_pipeline
+    v_obj_config: JobConfig = validate_config_file(config_path)
+                              ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\main.py", line 59, in validate_config_file
+    raise ConfigError(f"Connection validation failed: {v_obj_err}") from v_obj_err
+src.config.config_schema.ConfigError: Connection validation failed: Oracle connection 'oracle_prod' error: Missing environment variable 'ORACLE_PROD_JDBC_URL' (or 'ORACLE_PROD_HOST' and 'ORACLE_PROD_SERVICE_NAME').
+--------------------------------------------------------------------------------

@@ -1,0 +1,25 @@
+[job]
+job_id = "customer_partitioned_load"
+job_name = "Customer Partitioned Load"
+enabled = false
+
+[source]
+type = "oracle"
+connection = "oracle_prod"
+schema = "BANK"
+table = "CUSTOMER"
+
+[jdbc]
+partition_column = "CUSTOMER_ID"
+lower_bound = 1
+upper_bound = 10000000
+num_partitions = 8
+fetch_size = 10000
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "customer"
+
+[load]
+type = "full"

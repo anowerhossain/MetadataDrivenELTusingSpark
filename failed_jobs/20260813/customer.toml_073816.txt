@@ -1,0 +1,54 @@
+FAILURE RECORD TIMESTAMP: 2026-08-13T07:38:16.919865+00:00
+JOB ID                 : customer_load
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\jobs\customer.toml
+ERROR TYPE             : AssertionError
+ERROR MESSAGE          : 
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\core\transformer.py", line 169, in apply_audit_columns
+    v_obj_df = v_obj_df.withColumn(v_str_ins_ts_col, F.from_utc_timestamp(F.current_timestamp(), v_str_tz))
+                                                                          ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\anowerhossain\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pyspark\sql\utils.py", line 282, in wrapped
+    return f(*args, **kwargs)
+  File "C:\Users\anowerhossain\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pyspark\sql\functions\builtin.py", line 9391, in current_timestamp
+    return _invoke_function("current_timestamp")
+  File "C:\Users\anowerhossain\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pyspark\sql\functions\builtin.py", line 110, in _invoke_function
+    assert SparkContext._active_spark_context is not None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 212, in run_pipeline
+    v_obj_retry_handler.execute(execute_etl_work, task_name=f"ETL_Job_{v_obj_config.job.job_id}")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\utils\retry.py", line 82, in execute
+    raise v_obj_err
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\utils\retry.py", line 69, in execute
+    return func()
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 166, in execute_etl_work
+    v_obj_df = v_obj_transformer.transform(
+        v_obj_df,
+    ...<4 lines>...
+        v_str_run_id=v_obj_etl_logger.run_id
+    )
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\core\transformer.py", line 214, in transform
+    v_obj_df = self.apply_audit_columns(
+        v_obj_df,
+    ...<4 lines>...
+        v_str_job_user=v_str_job_user
+    )
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\core\transformer.py", line 172, in apply_audit_columns
+    v_obj_df = v_obj_df.withColumn(v_str_ins_ts_col, F.current_timestamp())
+                                                     ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\anowerhossain\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pyspark\sql\utils.py", line 282, in wrapped
+    return f(*args, **kwargs)
+  File "C:\Users\anowerhossain\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pyspark\sql\functions\builtin.py", line 9391, in current_timestamp
+    return _invoke_function("current_timestamp")
+  File "C:\Users\anowerhossain\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pyspark\sql\functions\builtin.py", line 110, in _invoke_function
+    assert SparkContext._active_spark_context is not None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+--------------------------------------------------------------------------------

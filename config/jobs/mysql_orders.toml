@@ -1,0 +1,79 @@
+[job]
+job_id = "mysql_orders"
+job_name = "MySQL Orders Ingestion"
+enabled = false
+description = "MySQL Orders → Bronze Iceberg"
+
+[source]
+type = "mysql"
+connection = "mysql_prod"
+schema = "sales_db"
+table = "orders"
+
+[source.extraction]
+columns = ["ORDER_ID", "CUSTOMER_ID", "ORDER_AMOUNT", "STATUS", "CREATED_AT"]
+
+[source.jdbc]
+fetch_size = 10000
+partition_column = "ORDER_ID"
+num_partitions = 4
+lower_bound = 1
+upper_bound = 1000000
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "CREATED_AT"
+watermark_type = "timestamp"
+
+[keys]
+primary_key = ["ORDER_ID"]
+merge_keys = ["ORDER_ID"]
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "mysql_orders"
+
+[target.partition]
+type = "days"
+column = "CREATED_AT"
+
+[target.maintenance]
+enabled = true
+compact_small_files = true
+target_file_size_mb = 128
+rewrite_manifests = true
+
+[transform.rename]
+ORDER_ID = "order_id"
+CUSTOMER_ID = "customer_id"
+ORDER_AMOUNT = "order_amount"
+CREATED_AT = "created_at"
+
+[preload]
+enabled = true
+operations = [
+    "validate_source",
+    "validate_target",
+    "check_watermark"
+]
+
+[postload]
+enabled = true
+operations = [
+    "update_watermark",
+    "compact_table",
+    "refresh_metadata"
+]
+
+[data_quality]
+enabled = true
+null_check = ["order_id", "created_at"]
+unique_check = ["order_id"]
+minimum_rows = 1
+
+[execution]
+retries = 3
+retry_delay_seconds = 30

@@ -1,0 +1,29 @@
+FAILURE RECORD TIMESTAMP: 2026-08-10T20:27:37.828124+00:00
+JOB ID                 : CONFIG_VALIDATION_FAILURE
+CONFIG PATH            : C:\Users\SUNDARBAN IT\Documents\Extraction\config\jobs\mysql_orders.toml
+ERROR TYPE             : ConfigError
+ERROR MESSAGE          : Connection validation failed: MySQL connection 'mysql_prod' error: Missing environment variable 'MYSQL_PROD_JDBC_URL' (or 'MYSQL_PROD_HOST' and 'MYSQL_PROD_DATABASE').
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\main.py", line 55, in validate_config_file
+    v_obj_conn = ConnectionResolver.resolve(v_obj_config.source)
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\src\connectors\connection_resolver.py", line 28, in resolve
+    return MySQLConnectionResolver.resolve(source_config)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\src\connectors\mysql_connection.py", line 70, in resolve
+    raise ConfigError(
+    ...<2 lines>...
+    )
+src.config.config_schema.ConfigError: MySQL connection 'mysql_prod' error: Missing environment variable 'MYSQL_PROD_JDBC_URL' (or 'MYSQL_PROD_HOST' and 'MYSQL_PROD_DATABASE').
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\main.py", line 82, in run_pipeline
+    v_obj_config: JobConfig = validate_config_file(config_path)
+                              ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\SUNDARBAN IT\Documents\Extraction\main.py", line 59, in validate_config_file
+    raise ConfigError(f"Connection validation failed: {v_obj_err}") from v_obj_err
+src.config.config_schema.ConfigError: Connection validation failed: MySQL connection 'mysql_prod' error: Missing environment variable 'MYSQL_PROD_JDBC_URL' (or 'MYSQL_PROD_HOST' and 'MYSQL_PROD_DATABASE').
+--------------------------------------------------------------------------------

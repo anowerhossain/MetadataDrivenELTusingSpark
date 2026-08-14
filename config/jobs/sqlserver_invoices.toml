@@ -1,0 +1,79 @@
+[job]
+job_id = "sqlserver_invoices"
+job_name = "SQL Server Invoices Ingestion"
+enabled = false
+description = "SQL Server Invoices → Bronze Iceberg"
+
+[source]
+type = "sqlserver"
+connection = "sqlserver_prod"
+schema = "dbo"
+table = "invoices"
+
+[source.extraction]
+columns = ["INVOICE_ID", "CUSTOMER_ID", "TOTAL_AMOUNT", "STATUS", "CREATED_AT"]
+
+[source.jdbc]
+fetch_size = 10000
+partition_column = "INVOICE_ID"
+num_partitions = 4
+lower_bound = 1
+upper_bound = 1000000
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "CREATED_AT"
+watermark_type = "timestamp"
+
+[keys]
+primary_key = ["INVOICE_ID"]
+merge_keys = ["INVOICE_ID"]
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "sqlserver_invoices"
+
+[target.partition]
+type = "days"
+column = "CREATED_AT"
+
+[target.maintenance]
+enabled = true
+compact_small_files = true
+target_file_size_mb = 128
+rewrite_manifests = true
+
+[transform.rename]
+INVOICE_ID = "invoice_id"
+CUSTOMER_ID = "customer_id"
+TOTAL_AMOUNT = "total_amount"
+CREATED_AT = "created_at"
+
+[preload]
+enabled = true
+operations = [
+    "validate_source",
+    "validate_target",
+    "check_watermark"
+]
+
+[postload]
+enabled = true
+operations = [
+    "update_watermark",
+    "compact_table",
+    "refresh_metadata"
+]
+
+[data_quality]
+enabled = true
+null_check = ["invoice_id", "created_at"]
+unique_check = ["invoice_id"]
+minimum_rows = 1
+
+[execution]
+retries = 3
+retry_delay_seconds = 30

@@ -1,0 +1,12 @@
+SUCCESS RECORD TIMESTAMP: 2026-08-13T10:46:14.331171+00:00
+JOB ID                 : sftp_invoices_csv
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\jobs\sftp_invoices_csv.toml
+EXECUTION RUN ID       : run_demo_101
+STATUS                 : SUCCESS
+ROWS READ              : 250
+ROWS WRITTEN           : 250
+DURATION (SECONDS)     : 1.85
+--------------------------------------------------------------------------------
+PIPELINE SUMMARY:
+ETL Job 'sftp_invoices_csv' completed successfully without errors.
+--------------------------------------------------------------------------------

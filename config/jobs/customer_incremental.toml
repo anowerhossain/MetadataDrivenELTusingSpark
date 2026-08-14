@@ -1,0 +1,62 @@
+[job]
+job_id = "customer_inc_loa"
+job_name = "Customer Inc Loa"
+enabled = false
+description = "Oracle Customer Incremental Load → Bronze Iceberg"
+
+[source]
+type = "oracle"
+connection = "oracle_prod"
+schema = "BANK"
+table = "CUSTOMER"
+
+[source.extraction]
+columns = ["CUSTOMER_ID", "CUSTOMER_NAME", "STATUS", "BALANCE", "UPDATED_AT"]
+
+[source.jdbc]
+fetch_size = 10000
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "UPDATED_AT"
+watermark_type = "timestamp"
+
+[keys]
+primary_key = ["CUSTOMER_ID"]
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "customer"
+
+[target.partition]
+type = "days"
+column = "UPDATED_AT"
+
+[transform.rename]
+CUSTOMER_ID = "customer_id"
+CUSTOMER_NAME = "customer_name"
+BALANCE = "balance"
+UPDATED_AT = "updated_at"
+
+[schema]
+evolution = true
+
+[preload]
+enabled = true
+operations = ["validate_source", "validate_target", "check_watermark"]
+
+[postload]
+enabled = true
+operations = ["update_watermark", "refresh_metadata"]
+
+[data_quality]
+enabled = true
+null_check = ["CUSTOMER_ID", "UPDATED_AT"]
+unique_check = ["CUSTOMER_ID"]
+
+[execution]
+retries = 3
+retry_delay_seconds = 30
