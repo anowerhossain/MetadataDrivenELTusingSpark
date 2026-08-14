@@ -1,0 +1,29 @@
+FAILURE RECORD TIMESTAMP: 2026-08-14T21:52:30.877969+00:00
+JOB ID                 : CONFIG_VALIDATION_FAILURE
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\tasks\sqlserver_invoices.toml
+ERROR TYPE             : ConfigError
+ERROR MESSAGE          : Connection validation failed: SQL Server connection 'sqlserver_prod' error: Missing environment variable 'SQLSERVER_PROD_JDBC_URL' (or 'SQLSERVER_PROD_HOST' and 'SQLSERVER_PROD_DATABASE').
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 50, in validate_config_file
+    conn = ConnectionResolver.resolve(config.source)
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\connectors\factory.py", line 59, in resolve
+    return SQLServerConnectionResolver.resolve(source_config)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\connectors\sqlserver.py", line 69, in resolve
+    raise ConfigError(
+    ...<2 lines>...
+    )
+src.core.config.ConfigError: SQL Server connection 'sqlserver_prod' error: Missing environment variable 'SQLSERVER_PROD_JDBC_URL' (or 'SQLSERVER_PROD_HOST' and 'SQLSERVER_PROD_DATABASE').
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 87, in run_pipeline
+    config: JobConfig = validate_config_file(config_path)
+                        ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 54, in validate_config_file
+    raise ConfigError(f"Connection validation failed: {err}") from err
+src.core.config.ConfigError: Connection validation failed: SQL Server connection 'sqlserver_prod' error: Missing environment variable 'SQLSERVER_PROD_JDBC_URL' (or 'SQLSERVER_PROD_HOST' and 'SQLSERVER_PROD_DATABASE').
+--------------------------------------------------------------------------------

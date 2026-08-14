@@ -1,0 +1,29 @@
+FAILURE RECORD TIMESTAMP: 2026-08-14T21:52:30.860141+00:00
+JOB ID                 : CONFIG_VALIDATION_FAILURE
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\tasks\customer_partitioned.toml
+ERROR TYPE             : ConfigError
+ERROR MESSAGE          : Connection validation failed: Oracle connection 'oracle_prod' error: Missing environment variable 'ORACLE_PROD_JDBC_URL' (or 'ORACLE_PROD_HOST' and 'ORACLE_PROD_SERVICE_NAME').
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 50, in validate_config_file
+    conn = ConnectionResolver.resolve(config.source)
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\connectors\factory.py", line 53, in resolve
+    return OracleConnectionResolver.resolve(source_config)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\connectors\oracle.py", line 69, in resolve
+    raise ConfigError(
+    ...<2 lines>...
+    )
+src.core.config.ConfigError: Oracle connection 'oracle_prod' error: Missing environment variable 'ORACLE_PROD_JDBC_URL' (or 'ORACLE_PROD_HOST' and 'ORACLE_PROD_SERVICE_NAME').
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 87, in run_pipeline
+    config: JobConfig = validate_config_file(config_path)
+                        ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 54, in validate_config_file
+    raise ConfigError(f"Connection validation failed: {err}") from err
+src.core.config.ConfigError: Connection validation failed: Oracle connection 'oracle_prod' error: Missing environment variable 'ORACLE_PROD_JDBC_URL' (or 'ORACLE_PROD_HOST' and 'ORACLE_PROD_SERVICE_NAME').
+--------------------------------------------------------------------------------

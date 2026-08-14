@@ -1,0 +1,31 @@
+FAILURE RECORD TIMESTAMP: 2026-08-14T21:52:30.869797+00:00
+JOB ID                 : CONFIG_VALIDATION_FAILURE
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\tasks\qlik_orders_refresh.toml
+ERROR TYPE             : ConfigError
+ERROR MESSAGE          : Configuration validation failed: Missing required section '[source]' in TOML configuration.
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 43, in validate_config_file
+    config: JobConfig = ConfigParser.load_toml(config_path)
+                        ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\core\config.py", line 1144, in load_toml
+    return cls.parse_dict(raw_data)
+           ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\core\config.py", line 1122, in parse_dict
+    return JobConfig.from_dict(resolved_data)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\core\config.py", line 1034, in from_dict
+    raise ConfigError(f"Missing required section '[{req_sec}]' in TOML configuration.")
+src.core.config.ConfigError: Missing required section '[source]' in TOML configuration.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 87, in run_pipeline
+    config: JobConfig = validate_config_file(config_path)
+                        ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 46, in validate_config_file
+    raise ConfigError(f"Configuration validation failed: {err}") from err
+src.core.config.ConfigError: Configuration validation failed: Missing required section '[source]' in TOML configuration.
+--------------------------------------------------------------------------------

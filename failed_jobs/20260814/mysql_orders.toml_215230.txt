@@ -1,0 +1,29 @@
+FAILURE RECORD TIMESTAMP: 2026-08-14T21:52:30.859104+00:00
+JOB ID                 : CONFIG_VALIDATION_FAILURE
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\tasks\mysql_orders.toml
+ERROR TYPE             : ConfigError
+ERROR MESSAGE          : Connection validation failed: MySQL connection 'mysql_prod' error: Missing environment variable 'MYSQL_PROD_JDBC_URL' (or 'MYSQL_PROD_HOST' and 'MYSQL_PROD_DATABASE').
+--------------------------------------------------------------------------------
+TRACEBACK:
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 50, in validate_config_file
+    conn = ConnectionResolver.resolve(config.source)
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\connectors\factory.py", line 55, in resolve
+    return MySQLConnectionResolver.resolve(source_config)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\src\connectors\mysql.py", line 69, in resolve
+    raise ConfigError(
+    ...<2 lines>...
+    )
+src.core.config.ConfigError: MySQL connection 'mysql_prod' error: Missing environment variable 'MYSQL_PROD_JDBC_URL' (or 'MYSQL_PROD_HOST' and 'MYSQL_PROD_DATABASE').
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 87, in run_pipeline
+    config: JobConfig = validate_config_file(config_path)
+                        ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Brac Bank\zipped\zipped\Extraction_v2.1\main.py", line 54, in validate_config_file
+    raise ConfigError(f"Connection validation failed: {err}") from err
+src.core.config.ConfigError: Connection validation failed: MySQL connection 'mysql_prod' error: Missing environment variable 'MYSQL_PROD_JDBC_URL' (or 'MYSQL_PROD_HOST' and 'MYSQL_PROD_DATABASE').
+--------------------------------------------------------------------------------

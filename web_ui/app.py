@@ -1422,8 +1422,15 @@ def main():
         initial_sidebar_state="expanded"
     )
 
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+    if not st.session_state.get("authenticated", False):
+        render_login_page()
+        return
+
     if "current_page" not in st.session_state:
-        st.session_state.current_page = "Task Builder"
+        st.session_state.current_page = "Dashboard & Task Executor"
 
     st.markdown("""
         <style>
