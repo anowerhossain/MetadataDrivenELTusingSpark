@@ -1,0 +1,13 @@
+[task]
+task_id = "qlik_orders_refresh"
+task_name = "Qlik Replicate Orders Task Refresh"
+type = "qlik_replicate"
+enabled = true
+description = "Trigger and monitor Qlik Replicate data replication task for Orders table"
+
+[qlik_replicate]
+server_url = "https://qlik-em.company.com"
+task_name = "OracleToIcebergOrders"
+action = "RELOAD_TARGET"
+timeout_seconds = 300
+poll_interval_seconds = 5

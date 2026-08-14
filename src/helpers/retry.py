@@ -58,6 +58,52 @@ class RetryHandler:
         return float(self.delay_seconds * (self.backoff_multiplier ** (attempt_index - 1)))
 
     def execute(self, func: Callable[[], T], task_name: str = "Task") -> T:
+        """Executes func with retries according to instance configuration."""
+        last_exception: Optional[BaseException] = None
+
+        for attempt in range(1, self.max_attempts + 1):
+            try:
+                if attempt > 1:
+                    logger.info(f"[{task_name}] Retry Attempt {attempt}/{self.max_attempts}...")
+                return func()
+            except NON_RETRYABLE_EXCEPTIONS as non_retry_err:
+                logger.error(f"[{task_name}] Non-retryable error encountered: {non_retry_err}")
+                raise non_retry_err
+            except Exception as err:
+                last_exception = err
+                if attempt >= self.max_attempts:
+                    logger.error(f"[{task_name}] Execution failed after {self.max_attempts} attempts: {err}")
+                    raise err
+
+                delay = self.calculate_delay(attempt)
+                logger.warning(
+                    f"[{task_name}] Attempt {attempt}/{self.max_attempts} failed with error: {err}. "
+                    f"Retrying in {delay:.1f} seconds..."
+                )
+                time.sleep(delay)
+
+        if last_exception:
+            raise last_exception
+        raise RuntimeError(f"[{task_name}] Execution failed after {self.max_attempts} attempts.")
+
+    @classmethod
+    def execute_with_retry(
+        cls,
+        func: Callable[[], T],
+        max_retries: int = 3,
+        delay_seconds: float = 5.0,
+        backoff_multiplier: float = 2.0,
+        task_name: str = "Task"
+    ) -> T:
+        """Convenience static method to execute callable with retry options."""
+        sec = ExecutionSection(
+            retries=max_retries,
+            retry_delay_seconds=delay_seconds,
+            backoff_multiplier=backoff_multiplier,
+            exponential_backoff=True
+        )
+        handler = cls(sec)
+        return handler.execute(func, task_name=task_name)
         """Executes func with retries according to ExecutionSection/RetrySection configuration."""
         if not self.enabled:
             return func()

@@ -85,26 +85,30 @@ class JobSection:
     enabled: bool
     description: Optional[str] = ""
 
+    @property
+    def task_id(self) -> str:
+        return self.job_id
+
+    @property
+    def task_name(self) -> str:
+        return self.job_name
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "JobSection":
         if not isinstance(data, dict):
-            raise ConfigError("Section '[job]' must be a dictionary.")
+            raise ConfigError("Section '[task]' / '[job]' must be a dictionary.")
 
-        for req_field in ("job_id", "job_name", "enabled"):
-            if req_field not in data:
-                raise ConfigError(f"Missing required field '{req_field}' in section '[job]'.")
+        job_id = data.get("task_id") or data.get("job_id")
+        if not job_id or not isinstance(job_id, str) or not job_id.strip():
+            raise ConfigError("Missing required field 'task_id' or 'job_id' in section '[task]' / '[job]'.")
 
-        job_id = data["job_id"]
-        if not isinstance(job_id, str) or not job_id.strip():
-            raise ConfigError("Field 'job_id' in section '[job]' must be a non-empty string.")
+        job_name = data.get("task_name") or data.get("job_name")
+        if not job_name or not isinstance(job_name, str) or not job_name.strip():
+            raise ConfigError("Missing required field 'task_name' or 'job_name' in section '[task]' / '[job]'.")
 
-        job_name = data["job_name"]
-        if not isinstance(job_name, str) or not job_name.strip():
-            raise ConfigError("Field 'job_name' in section '[job]' must be a non-empty string.")
-
-        enabled = data["enabled"]
+        enabled = data.get("enabled", True)
         if not isinstance(enabled, bool):
-            raise ConfigError("Field 'enabled' in section '[job]' must be a boolean (true/false).")
+            raise ConfigError("Field 'enabled' in section '[task]' / '[job]' must be a boolean (true/false).")
 
         description = str(data.get("description", "")).strip()
 
@@ -114,6 +118,9 @@ class JobSection:
             enabled=enabled,
             description=description,
         )
+
+
+TaskSection = JobSection
 
 
 @dataclass(frozen=True)
@@ -1018,11 +1025,15 @@ class JobConfig:
         if not isinstance(data, dict):
             raise ConfigError("TOML configuration root must be a dictionary.")
 
-        for req_sec in ("job", "source", "load", "target"):
+        job_raw = data.get("task") or data.get("job")
+        if not job_raw:
+            raise ConfigError("Missing required section '[task]' or '[job]' in TOML configuration.")
+
+        for req_sec in ("source", "load", "target"):
             if req_sec not in data:
                 raise ConfigError(f"Missing required section '[{req_sec}]' in TOML configuration.")
 
-        job_sec = JobSection.from_dict(data["job"])
+        job_sec = JobSection.from_dict(job_raw)
         source_sec = SourceSection.from_dict(data["source"])
         load_sec = LoadSection.from_dict(data["load"])
         target_sec = TargetSection.from_dict(data["target"])
