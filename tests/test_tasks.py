@@ -140,6 +140,62 @@ class TestTaskAbstraction(unittest.TestCase):
 
         self.assertEqual(task.status, "FAILED")
 
+    @patch("urllib.request.urlopen")
+    def test_qlik_sense_refresh_task_success(self, mock_urlopen):
+        """Test QlikSenseRefreshTask REST API reload trigger and status polling."""
+        from src.helpers.qlik_sense import QlikSenseRefreshTask
+        mock_resp_trigger = MagicMock()
+        mock_resp_trigger.__enter__.return_value.read.return_value = b'{"value": "exec_123"}'
+
+        mock_resp_poll = MagicMock()
+        mock_resp_poll.__enter__.return_value.read.return_value = b'{"status": "7"}'
+
+        mock_urlopen.side_effect = [mock_resp_trigger, mock_resp_poll]
+
+        task = QlikSenseRefreshTask(
+            task_id="qlik_sense_sales",
+            task_name="Qlik Sense Sales App Reload",
+            server_url="https://qlik-sense.bank.local",
+            app_id="app-guid-12345",
+            poll_interval_seconds=1,
+            timeout_seconds=5
+        )
+
+        res = task.run()
+        self.assertTrue(res)
+        self.assertEqual(task.status, "SUCCESS")
+
+    @patch("urllib.request.urlopen")
+    def test_qlik_nprinting_task_success(self, mock_urlopen):
+        """Test QlikNPrintingTask REST API authentication and report generation."""
+        from src.helpers.qlik_nprinting import QlikNPrintingTask
+        mock_resp_login = MagicMock()
+        mock_resp_login.__enter__.return_value.read.return_value = b'{"status": "SUCCESS"}'
+        mock_resp_login.__enter__.return_value.headers.get.return_value = "session=xyz123;"
+
+        mock_resp_trigger = MagicMock()
+        mock_resp_trigger.__enter__.return_value.read.return_value = b'{"data": {"id": "exec_np_99"}}'
+
+        mock_resp_poll = MagicMock()
+        mock_resp_poll.__enter__.return_value.read.return_value = b'{"data": {"status": "COMPLETED"}}'
+
+        mock_urlopen.side_effect = [mock_resp_login, mock_resp_trigger, mock_resp_poll]
+
+        task = QlikNPrintingTask(
+            task_id="qlik_np_fin_report",
+            task_name="Financial NPrinting Report",
+            server_url="https://nprinting.bank.local:4993",
+            report_id="rpt-guid-8888",
+            username="admin",
+            password="password",
+            poll_interval_seconds=1,
+            timeout_seconds=5
+        )
+
+        res = task.run()
+        self.assertTrue(res)
+        self.assertEqual(task.status, "SUCCESS")
+
 
 if __name__ == "__main__":
     unittest.main()
