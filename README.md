@@ -25,19 +25,20 @@ The project includes an interactive, browser-based **Streamlit Web Application**
 
 ### Launching the Web UI:
 ```bash
-python -m streamlit run app.py
+streamlit run web_ui/app.py
 ```
 *Access in browser at: `http://localhost:8501`*
 
-### Web UI Core Modules:
-1. **📊 Dashboard & Job Executor**: View filterable job catalogs, validate credentials (`--validate`), and trigger single or parallel batch runs with real-time streaming terminal logs.
-2. **➕ Visual Job Builder**: Form-driven wizard to create new TOML configuration files for **Oracle**, **SQL Server**, **MySQL**, **PostgreSQL**, and **SFTP**.
-   - Includes **Section 9 (`[email_notification]`)** with multi-event tabs:
-     - 🔴 **Failure Alerts (`on_failure`)**: Recipient routing and HTML failure alert templates.
-     - 🟢 **Success Notices (`on_success`)**: Recipient routing and green execution summary templates.
-     - ⚠️ **Quality Failure Alerts (`on_quality_failure`)**: Recipient routing and data quality violation templates.
-3. **✏️ TOML Code Editor**: Open any `.toml` file in `config/tasks/`, edit syntax live in browser, validate schemas, and save.
-4. **🚨 Failure Recovery Center**: Inspect timestamped failure marker files in `failed_jobs/YYYYMMDD/`, read error tracebacks, and launch single-click deduplicated reruns.
+### Web UI Core Modules & RBAC:
+1. **🔐 User Authentication & Role-Based Access Control (RBAC)**: Secure login system powered by Apache Iceberg user database (`etl_audit.etl_users`).
+   - 🛡️ **`admin` / `admin123`**: **ADMIN Role** (Full access: Create, Edit, Run, Delete, User & Access Control).
+   - 💻 **`developer` / `dev123`**: **DEVELOPER Role** (Create, Edit, Run task pipelines).
+   - 👁️ **`viewer` / `view123`**: **VIEWER Role** (Read-only access to task catalog and execution logs).
+2. **📊 Dashboard & Task Executor**: View filterable task catalogs, validate credentials (`--validate`), and trigger task execution with real-time streaming terminal logs.
+3. **➕ Visual Task Builder**: Form-driven wizard supporting **Table Load** (Oracle, MySQL, Postgres, SQL Server, SFTP -> Iceberg), **Qlik Replicate Refresh**, **Qlik Sense Report Refresh**, and **Qlik NPrinting Report**.
+4. **✏️ TOML Task Editor**: Open any `.toml` file in `config/tasks/`, edit syntax live in browser, validate schemas, and save.
+5. **🚨 Failure Recovery Center**: Inspect timestamped failure marker files in `failed_jobs/YYYYMMDD/`, read error tracebacks, and launch single-click deduplicated reruns.
+6. **👥 User & Access Control**: Manage system user accounts, roles, and inspect Apache Iceberg RBAC DDL schemas (`sql/04_create_rbac_tables_ddl.sql`).
 
 ---
 

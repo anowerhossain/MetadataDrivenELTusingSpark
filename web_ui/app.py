@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 """
 Production Streamlit Web UI Control Panel for PySpark Metadata-Driven ETL Framework.
 Enables interactive filterable task catalog with schema search, bulk status operations,
@@ -31,9 +35,9 @@ try:
 except ImportError:
     st = None
 
-CONFIG_DIR = os.path.join("config", "tasks")
-FAILED_DIR = "failed_jobs"
-SUCCESS_DIR = "success_jobs"
+CONFIG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config", "tasks"))
+FAILED_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "failed_jobs"))
+SUCCESS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "success_jobs"))
 
 
 def run_command_stream(cmd_list):
@@ -1309,6 +1313,103 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
         st.rerun()
 
 
+
+# -----------------------------------------------------------------------------
+# User Authentication & Role-Based Access Control (RBAC) System
+# Hardcoded credentials for primary testing (mirrors etl_audit.etl_users table)
+# -----------------------------------------------------------------------------
+USERS_DB = {
+    "admin": {
+        "password": "admin123",
+        "role": "ADMIN",
+        "name": "System Administrator",
+        "email": "admin@company.com"
+    },
+    "developer": {
+        "password": "dev123",
+        "role": "DEVELOPER",
+        "name": "ETL Data Engineer",
+        "email": "dev@company.com"
+    },
+    "viewer": {
+        "password": "view123",
+        "role": "VIEWER",
+        "name": "Business Viewer / Auditor",
+        "email": "viewer@company.com"
+    }
+}
+
+ROLE_PERMISSIONS = {
+    "ADMIN": ["VIEW_CATALOG", "CREATE_TASK", "EDIT_TASK", "EXECUTE_TASK", "DELETE_TASK", "MANAGE_USERS"],
+    "DEVELOPER": ["VIEW_CATALOG", "CREATE_TASK", "EDIT_TASK", "EXECUTE_TASK"],
+    "VIEWER": ["VIEW_CATALOG"]
+}
+
+
+def has_permission(permission: str) -> bool:
+    """Checks if the currently logged-in user role has the required permission."""
+    role = st.session_state.get("user_role", "VIEWER")
+    return permission in ROLE_PERMISSIONS.get(role, [])
+
+
+def render_login_page():
+    """Renders professional Streamlit User Authentication Login Page."""
+    st.markdown("""
+        <style>
+            .login-card {
+                background-color: #161b22;
+                border: 1px solid #30363d;
+                border-radius: 12px;
+                padding: 32px;
+                max-width: 480px;
+                margin: 40px auto;
+            }
+            .role-pill {
+                display: inline-block;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 700;
+                margin-right: 6px;
+            }
+            .role-admin { background-color: #8957e5; color: #ffffff; }
+            .role-dev { background-color: #1f6feb; color: #ffffff; }
+            .role-viewer { background-color: #238636; color: #ffffff; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        st.title("🔐 ETL Platform Login")
+        st.caption("Metadata-Driven PySpark & Iceberg Framework • Secure RBAC Access")
+        st.markdown("---")
+
+        with st.form("login_form"):
+            username_input = st.text_input("Username*", value="admin")
+            password_input = st.text_input("Password*", type="password", value="admin123")
+            submitted = st.form_submit_button("🔓 Log In", type="primary", use_container_width=True)
+
+            if submitted:
+                user_info = USERS_DB.get(username_input.strip().lower())
+                if user_info and user_info["password"] == password_input:
+                    st.session_state.authenticated = True
+                    st.session_state.username = username_input.strip().lower()
+                    st.session_state.user_role = user_info["role"]
+                    st.session_state.user_name = user_info["name"]
+                    st.toast(f"Welcome back, {user_info['name']} ({user_info['role']})!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password. Please try again.")
+
+        st.markdown("---")
+        st.markdown("#### 🔑 Demo Credentials for Testing:")
+        st.markdown("""
+        - 🛡️ **`admin` / `admin123`**: **ADMIN Role** (Full access: Create, Edit, Run, Delete, User Management)
+        - 💻 **`developer` / `dev123`**: **DEVELOPER Role** (Create, Edit, Run tasks)
+        - 👁️ **`viewer` / `view123`**: **VIEWER Role** (Read-only access to catalog & logs)
+        """)
+
+
 def main():
     if st is None:
         print("ERROR: Streamlit is not installed. Please run 'pip install streamlit' to launch the web dashboard.")
@@ -1354,16 +1455,30 @@ def main():
     st.title("Metadata-Driven ETL Control Center")
     st.caption("Cloudera Data Platform (CDP) • Apache Iceberg • Multi-Database Source Management UI")
 
-    st.sidebar.markdown("## ETL CONTROL")
-    st.sidebar.caption("Metadata Engine • CDP Iceberg")
+    # User Account & Role Profile Badge
+    user_role = st.session_state.get("user_role", "VIEWER")
+    user_name = st.session_state.get("user_name", "User")
+    badge_color = "#8957e5" if user_role == "ADMIN" else ("#1f6feb" if user_role == "DEVELOPER" else "#238636")
+    
+    st.sidebar.markdown(f"### 👤 {user_name}")
+    st.sidebar.markdown(f"<span style='background-color:{badge_color}; color:white; padding:3px 10px; border-radius:12px; font-weight:700; font-size:12px;'>ROLE: {user_role}</span>", unsafe_allow_html=True)
+    if st.sidebar.button("🚪 Log Out", key="btn_logout", use_container_width=True):
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.session_state.user_role = None
+        st.rerun()
+
+    st.sidebar.markdown("---")
     st.sidebar.markdown("<div class='sidebar-nav-header'>NAVIGATION BAR</div>", unsafe_allow_html=True)
 
-    nav_options = [
-        ("Task Builder", "builder"),
-        ("Dashboard & Task Executor", "dash"),
-        ("TOML Task Editor & Configurator", "editor"),
-        ("Failure Recovery Center", "failure")
+    all_nav_options = [
+        ("Dashboard & Task Executor", "dash", "VIEW_CATALOG"),
+        ("Task Builder", "builder", "CREATE_TASK"),
+        ("TOML Task Editor & Configurator", "editor", "EDIT_TASK"),
+        ("Failure Recovery Center", "failure", "EXECUTE_TASK"),
+        ("User & Access Control", "users", "MANAGE_USERS")
     ]
+    nav_options = [(lbl, key) for lbl, key, perm in all_nav_options if has_permission(perm)]
 
     for label, key_suffix in nav_options:
         is_active = (st.session_state.current_page == label)
