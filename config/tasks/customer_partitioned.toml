@@ -1,6 +1,6 @@
-[job]
-job_id = "customer_partitioned_load"
-job_name = "Customer Partitioned Load"
+[task]
+task_id = "customer_partitioned_load"
+task_name = "Customer Partitioned Load"
 enabled = false
 
 [source]

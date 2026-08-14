@@ -57,4 +57,4 @@ impala-shell -i impala-daemon.bank.local:21000 -f sql/04_sample_data_dml.sql
 ---
 
 ### Option 3: Automatic Execution via PySpark Framework
-When running `spark-submit main.py --config config/jobs/customer.toml`, the framework (`IcebergWriter`) will **automatically execute `CREATE TABLE IF NOT EXISTS`** for target tables if they do not exist.
+When running `spark-submit main.py --config config/tasks/customer.toml`, the framework (`IcebergWriter`) will **automatically execute `CREATE TABLE IF NOT EXISTS`** for target tables if they do not exist.

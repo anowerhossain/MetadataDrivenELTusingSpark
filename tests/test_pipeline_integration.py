@@ -68,10 +68,10 @@ class TestPipelineIntegration(unittest.TestCase):
         mock_writer_inst = MagicMock()
         mock_iceberg_writer_cls.return_value = mock_writer_inst
 
-        exit_code = run_pipeline("config/jobs/customer.toml")
+        exit_code = run_pipeline("config/tasks/customer.toml")
 
         self.assertEqual(exit_code, 0)
-        mock_load_toml.assert_called_once_with("config/jobs/customer.toml")
+        mock_load_toml.assert_called_once_with("config/tasks/customer.toml")
         mock_get_spark.assert_called_once_with(config=mock_config)
         mock_get_reader.assert_called_once_with(mock_spark, mock_config.source, jdbc_config=mock_config.jdbc)
         mock_writer_inst.write.assert_called_once_with(mock_df, mode="overwrite")
@@ -105,7 +105,7 @@ class TestPipelineIntegration(unittest.TestCase):
         )
         mock_load_toml.return_value = mock_config
 
-        exit_code = run_pipeline("config/jobs/customer.toml", validate_only=True)
+        exit_code = run_pipeline("config/tasks/customer.toml", validate_only=True)
 
         self.assertEqual(exit_code, 0)
         mock_get_spark.assert_not_called()
@@ -115,7 +115,7 @@ class TestPipelineIntegration(unittest.TestCase):
         # Unset credentials so connection validation fails
         os.environ.clear()
 
-        exit_code = run_pipeline("config/jobs/customer.toml", validate_only=True)
+        exit_code = run_pipeline("config/tasks/customer.toml", validate_only=True)
 
         self.assertEqual(exit_code, 1)
         mock_get_spark.assert_not_called()
@@ -127,7 +127,7 @@ class TestPipelineIntegration(unittest.TestCase):
         os.environ["ORACLE_PROD_USERNAME"] = "BANK_USER"
         os.environ["ORACLE_PROD_PASSWORD"] = "SecretPassword123!"
 
-        exit_code = run_batch_pipeline("config/jobs", max_workers=2, validate_only=True)
+        exit_code = run_batch_pipeline("config/tasks", max_workers=2, validate_only=True)
 
         self.assertEqual(exit_code, 0)
         self.assertGreater(mock_run_pipeline.call_count, 1)

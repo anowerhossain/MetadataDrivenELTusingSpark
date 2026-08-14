@@ -1,8 +1,8 @@
-[job]
-job_id = "customer"
-job_name = "Customer ETL"
+[task]
+task_id = "customer_inc_loa"
+task_name = "Customer Inc Loa"
 enabled = false
-description = "Oracle Customer → Bronze Iceberg"
+description = "Oracle Customer Incremental Load → Bronze Iceberg"
 
 [source]
 type = "oracle"
@@ -15,8 +15,6 @@ columns = ["CUSTOMER_ID", "CUSTOMER_NAME", "STATUS", "BALANCE", "UPDATED_AT"]
 
 [source.jdbc]
 fetch_size = 10000
-partition_column = "CUSTOMER_ID"
-num_partitions = 8
 
 [load]
 type = "INCREMENTAL"
@@ -27,7 +25,6 @@ watermark_type = "timestamp"
 
 [keys]
 primary_key = ["CUSTOMER_ID"]
-merge_keys = ["CUSTOMER_ID"]
 
 [target]
 catalog = "hive"
@@ -44,16 +41,8 @@ CUSTOMER_NAME = "customer_name"
 BALANCE = "balance"
 UPDATED_AT = "updated_at"
 
-[transform.cast]
-CUSTOMER_ID = "BIGINT"
-BALANCE = "DECIMAL(18,2)"
-
-[transform.derived]
-source_system = "'ORACLE'"
-
 [schema]
 evolution = true
-add_columns = true
 
 [preload]
 enabled = true
@@ -67,7 +56,6 @@ operations = ["update_watermark", "refresh_metadata"]
 enabled = true
 null_check = ["CUSTOMER_ID", "UPDATED_AT"]
 unique_check = ["CUSTOMER_ID"]
-minimum_rows = 1
 
 [execution]
 retries = 3

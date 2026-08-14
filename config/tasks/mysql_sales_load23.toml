@@ -1,6 +1,6 @@
-[job]
-job_id = "mysql_sales_load23"
-job_name = "MySQL Sales Data Ingestion23"
+[task]
+task_id = "mysql_sales_load23"
+task_name = "MySQL Sales Data Ingestion23"
 enabled = false
 description = "Ingest sales from MySQL into Iceberg Bronze"
 

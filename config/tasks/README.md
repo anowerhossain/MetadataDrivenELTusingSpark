@@ -1,4 +1,4 @@
-# `config/jobs` - TOML Job Configurations Directory
+# `config/tasks` - TOML Task Configurations Directory
 
 This directory holds TOML configuration files that define end-to-end extraction and loading job pipelines.
 
@@ -57,7 +57,7 @@ retries = 3                         # Number of retry attempts
 retry_delay_seconds = 30            # Retry delay seconds
 ```
 
-## Sample Job Files in this Directory
+## Sample Task Files in this Directory
 
 - `customer.toml`: Full load from Oracle to Iceberg.
 - `customer_incremental.toml`: Incremental load from Oracle based on timestamp high-watermark.
@@ -72,11 +72,11 @@ To validate or execute a job file:
 
 ```bash
 # Single job dry-run validation
-python main.py --config config/jobs/customer.toml --validate
+python main.py --config config/tasks/customer.toml --validate
 
 # Single job execution
-python main.py --config config/jobs/customer.toml
+python main.py --config config/tasks/customer.toml
 
-# Batch run all jobs in config/jobs/
-python main.py --config-dir config/jobs/ --parallel 4
+# Batch run all tasks in config/tasks/
+python main.py --config-dir config/tasks/ --parallel 4
 ```

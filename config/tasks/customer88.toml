@@ -1,6 +1,6 @@
-[job]
-job_id = "customer"
-job_name = "Customer ETL"
+[task]
+task_id = "customer"
+task_name = "Customer ETL"
 enabled = false
 description = "Oracle Customer → Bronze Iceberg"
 

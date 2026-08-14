@@ -1,6 +1,6 @@
-[job]
-job_id = "oracle_employees_to_iceberg"
-job_name = "Oracle Employees to Iceberg"
+[task]
+task_id = "oracle_employees_to_iceberg"
+task_name = "Oracle Employees to Iceberg"
 enabled = false
 
 [source]

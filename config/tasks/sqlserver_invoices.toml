@@ -1,21 +1,21 @@
-[job]
-job_id = "postgres_payments"
-job_name = "PostgreSQL Payments Ingestion"
+[task]
+task_id = "sqlserver_invoices"
+task_name = "SQL Server Invoices Ingestion"
 enabled = false
-description = "PostgreSQL Payments → Bronze Iceberg"
+description = "SQL Server Invoices → Bronze Iceberg"
 
 [source]
-type = "postgresql"
-connection = "postgres_prod"
-schema = "public"
-table = "payments"
+type = "sqlserver"
+connection = "sqlserver_prod"
+schema = "dbo"
+table = "invoices"
 
 [source.extraction]
-columns = ["PAYMENT_ID", "ACCOUNT_ID", "AMOUNT", "PAYMENT_METHOD", "CREATED_AT"]
+columns = ["INVOICE_ID", "CUSTOMER_ID", "TOTAL_AMOUNT", "STATUS", "CREATED_AT"]
 
 [source.jdbc]
 fetch_size = 10000
-partition_column = "PAYMENT_ID"
+partition_column = "INVOICE_ID"
 num_partitions = 4
 lower_bound = 1
 upper_bound = 1000000
@@ -28,13 +28,13 @@ column = "CREATED_AT"
 watermark_type = "timestamp"
 
 [keys]
-primary_key = ["PAYMENT_ID"]
-merge_keys = ["PAYMENT_ID"]
+primary_key = ["INVOICE_ID"]
+merge_keys = ["INVOICE_ID"]
 
 [target]
 catalog = "hive"
 database = "edw_bronze"
-table = "postgres_payments"
+table = "sqlserver_invoices"
 
 [target.partition]
 type = "days"
@@ -47,9 +47,9 @@ target_file_size_mb = 128
 rewrite_manifests = true
 
 [transform.rename]
-PAYMENT_ID = "payment_id"
-ACCOUNT_ID = "account_id"
-AMOUNT = "amount"
+INVOICE_ID = "invoice_id"
+CUSTOMER_ID = "customer_id"
+TOTAL_AMOUNT = "total_amount"
 CREATED_AT = "created_at"
 
 [preload]
@@ -70,8 +70,8 @@ operations = [
 
 [data_quality]
 enabled = true
-null_check = ["payment_id", "created_at"]
-unique_check = ["payment_id"]
+null_check = ["invoice_id", "created_at"]
+unique_check = ["invoice_id"]
 minimum_rows = 1
 
 [execution]

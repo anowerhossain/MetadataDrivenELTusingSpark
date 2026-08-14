@@ -3,12 +3,12 @@ Main Driver CLI Entry Point for Metadata-Driven PySpark ETL Framework (TOML Conf
 
 Usage:
   # Single Table Execution:
-  spark-submit main.py --config config/jobs/customer.toml
-  spark-submit main.py --config config/jobs/customer.toml --validate
+  spark-submit main.py --config config/tasks/customer.toml
+  spark-submit main.py --config config/tasks/customer.toml --validate
 
   # Concurrent Multi-Table Batch Execution:
-  spark-submit main.py --config-dir config/jobs/ --parallel 4
-  spark-submit main.py --config-dir config/jobs/ --parallel 4 --validate
+  spark-submit main.py --config-dir config/tasks/ --parallel 4
+  spark-submit main.py --config-dir config/tasks/ --parallel 4 --validate
 """
 
 import argparse

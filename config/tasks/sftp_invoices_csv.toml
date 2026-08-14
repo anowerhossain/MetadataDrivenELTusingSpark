@@ -1,19 +1,20 @@
-[job]
-job_id = "sftp_settlements_excel"
-job_name = "SFTP Card Settlements Excel Ingestion"
+[task]
+task_id = "sftp_invoices_csv"
+task_name = "SFTP Invoices CSV Ingestion"
 enabled = false
-description = "Ingest card settlement Excel spreadsheets (.xlsx) from SFTP into Apache Iceberg table on CDP"
+description = "Ingest daily CSV invoice dumps from SFTP into Apache Iceberg table on CDP"
 
 [source]
 type = "sftp"
 connection = "sftp_prod"
-schema = "sftp_card"
-table = "card_settlements"
+schema = "sftp_invoices"
+table = "raw_invoices"
 path = "config/jobs/sample_data/"
-file_pattern = "*.xlsx"
-file_format = "excel"
-sheet_name = "0"
-header_row = 0
+file_pattern = "*.csv"
+file_format = "csv"
+delimiter = ","
+header = true
+encoding = "utf-8"
 audit_table = "hive.etl_audit.sftp_file_audit"
 
 [load]
@@ -23,7 +24,7 @@ type = "FULL"
 type = "iceberg"
 catalog = "hive"
 database = "edw_bronze"
-table = "sftp_settlements_excel"
+table = "sftp_invoices_csv"
 
 [target.partition]
 type = "days"
@@ -33,6 +34,12 @@ column = "dwh_insert_ts"
 enabled = true
 compact_small_files = true
 
+[transform.rename]
+INVOICE_ID = "invoice_id"
+CUSTOMER_ID = "customer_id"
+TOTAL_AMOUNT = "total_amount"
+STATUS = "status"
+
 [preload]
 enabled = true
 operations = ["validate_source", "validate_target"]
@@ -40,6 +47,11 @@ operations = ["validate_source", "validate_target"]
 [postload]
 enabled = true
 operations = ["compact_table", "refresh_metadata"]
+
+[data_quality]
+enabled = true
+null_check = ["invoice_id"]
+minimum_rows = 1
 
 [execution]
 retries = 3

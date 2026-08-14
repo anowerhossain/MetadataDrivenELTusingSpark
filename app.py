@@ -31,7 +31,7 @@ try:
 except ImportError:
     st = None
 
-CONFIG_DIR = os.path.join("config", "jobs")
+CONFIG_DIR = os.path.join("config", "tasks")
 FAILED_DIR = "failed_jobs"
 SUCCESS_DIR = "success_jobs"
 
@@ -516,7 +516,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
                 sftp_path = st.text_input(
                     "SFTP Remote Directory / Local Path*",
                     value=src_sec.get("path") or sftp_sec.get("path", "/remote/incoming/"),
-                    help="SFTP directory path or local staging path (e.g. /remote/data/ or config/jobs/sample_data/)."
+                    help="SFTP directory path or local staging path (e.g. /remote/data/ or config/tasks/sample_data/)."
                 )
                 sftp_file_pattern = st.text_input(
                     "File Pattern (Glob)*",
@@ -1031,7 +1031,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
         save_filename = st.text_input(
             "Save TOML File Name*",
             value=default_filename,
-            help="Filename inside config/jobs/ directory (e.g. customer_load.toml)."
+            help="Filename inside config/tasks/ directory (e.g. customer_load.toml)."
         )
 
         sub1, sub2 = st.columns([1, 4])
@@ -1354,7 +1354,7 @@ def main():
 
         with col2:
             st.subheader("⚡ Multi-Table Batch Execution")
-            st.markdown("Executes all active `.toml` files in `config/jobs/` in parallel worker threads.")
+            st.markdown("Executes all active `.toml` files in `config/tasks/` in parallel worker threads.")
             parallel_workers = st.slider("Parallel Worker Threads (`--parallel`):", min_value=1, max_value=16, value=4)
 
             btn_val_batch = st.button("🔍 Pre-flight Validate All Jobs", key="val_batch")
@@ -1408,7 +1408,7 @@ def main():
         st.markdown("Select an existing job file to edit via **Visual Form Builder (Guided)** or **Raw TOML Code Editor**.")
 
         if not toml_files:
-            st.warning("No TOML configuration files found in `config/jobs/`.")
+            st.warning("No TOML configuration files found in `config/tasks/`.")
         else:
             selected_file = st.selectbox(
                 "Select TOML File to Modify:",

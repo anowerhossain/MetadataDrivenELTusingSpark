@@ -48,7 +48,7 @@ class TestEmailNotification(unittest.TestCase):
                 error=err,
                 config=sec,
                 run_id="run_99999",
-                config_path="config/jobs/customer.toml"
+                config_path="config/tasks/customer.toml"
             )
 
             self.assertTrue(result)

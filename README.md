@@ -36,7 +36,7 @@ python -m streamlit run app.py
      - 🔴 **Failure Alerts (`on_failure`)**: Recipient routing and HTML failure alert templates.
      - 🟢 **Success Notices (`on_success`)**: Recipient routing and green execution summary templates.
      - ⚠️ **Quality Failure Alerts (`on_quality_failure`)**: Recipient routing and data quality violation templates.
-3. **✏️ TOML Code Editor**: Open any `.toml` file in `config/jobs/`, edit syntax live in browser, validate schemas, and save.
+3. **✏️ TOML Code Editor**: Open any `.toml` file in `config/tasks/`, edit syntax live in browser, validate schemas, and save.
 4. **🚨 Failure Recovery Center**: Inspect timestamped failure marker files in `failed_jobs/YYYYMMDD/`, read error tracebacks, and launch single-click deduplicated reruns.
 
 ---
@@ -44,7 +44,7 @@ python -m streamlit run app.py
 ## 🏗️ Architecture & Component Workflow
 
 ```text
-                     TOML Job Config (config/jobs/*.toml)
+                     TOML Job Config (config/tasks/*.toml)
                                       │
                                       ▼
   Database / SFTP Connection Resolver (Oracle / SQL Server / MySQL / Postgres / SFTP)
@@ -137,7 +137,7 @@ TBLPROPERTIES ('format-version' = '2');
 The framework is engineered to scale across enterprise data lakes using **two complementary levels of parallelism**:
 
 ```text
-                       spark-submit main.py --config-dir config/jobs/ --parallel 4
+                       spark-submit main.py --config-dir config/tasks/ --parallel 4
                                                      │
        ┌───────────────────────┬─────────────────────┴─────────────────────┬───────────────────────┐
        ▼                       ▼                                           ▼                       ▼

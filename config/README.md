@@ -11,10 +11,10 @@ config/
 
 ## Configuration Concept
 
-The framework is **100% metadata-driven**. No Python code changes are required to add new ingestion pipelines or database sources. Adding a new table ingestion job is as simple as creating a new `.toml` file inside `config/jobs/`.
+The framework is **100% metadata-driven**. No Python code changes are required to add new ingestion pipelines or database sources. Adding a new table ingestion job is as simple as creating a new `.toml` file inside `config/tasks/`.
 
 ---
 
 ## Sub-Directories
 
-- [`config/jobs/`](file:///C:/Users/SUNDARBAN%20IT/Documents/Extraction/config/jobs/README.md): Contains individual TOML configuration files defining specific data pipeline pipelines.
+- [`config/tasks/`](file:///C:/Users/SUNDARBAN%20IT/Documents/Extraction/config/tasks/README.md): Contains individual TOML configuration files defining specific data pipeline pipelines.

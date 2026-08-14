@@ -1,6 +1,6 @@
-[job]
-job_id = "mysql_orders"
-job_name = "MySQL Orders Ingestion"
+[task]
+task_id = "mysql_orders"
+task_name = "MySQL Orders Ingestion"
 enabled = false
 description = "MySQL Orders → Bronze Iceberg"
 
