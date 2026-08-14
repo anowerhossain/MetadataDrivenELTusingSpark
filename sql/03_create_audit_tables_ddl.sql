@@ -61,3 +61,29 @@ PARTITIONED BY (days(start_time))
 TBLPROPERTIES (
     'format-version' = '2'
 );
+
+
+-- ------------------------------------------------------------------------------
+-- 4. ETL Email Notification Audit Telemetry Table
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS etl_audit.etl_email_audit (
+    notification_id     STRING          COMMENT 'Unique Email Notification Run UUID',
+    job_id              STRING          COMMENT 'ETL Job ID (e.g. customer_load, sqlserver_invoices)',
+    job_name            STRING          COMMENT 'Descriptive Job Name',
+    run_id              STRING          COMMENT 'Execution Run ID',
+    event_type          STRING          COMMENT 'Event Trigger (on_failure, on_success, on_quality_failure, etc.)',
+    pipeline_status     STRING          COMMENT 'Pipeline Execution Status (FAILED, SUCCESS, etc.)',
+    sender              STRING          COMMENT 'Sender Email Address (From)',
+    recipients_to       STRING          COMMENT 'Comma-separated Primary Recipients (To)',
+    recipients_cc       STRING          COMMENT 'Comma-separated CC Recipients',
+    subject             STRING          COMMENT 'Evaluated Email Subject Line',
+    template_used       STRING          COMMENT 'Template Used (job_failed, job_success, etc.)',
+    email_status        STRING          COMMENT 'Email Delivery Status (SENT, FAILED, DISABLED, NO_RECIPIENTS)',
+    error_message       STRING          COMMENT 'SMTP Delivery Error or Pipeline Error Summary',
+    sent_timestamp      TIMESTAMP       COMMENT 'Timestamp when notification attempt occurred (UTC)'
+)
+USING iceberg
+PARTITIONED BY (days(sent_timestamp), email_status)
+TBLPROPERTIES (
+    'format-version' = '2'
+);

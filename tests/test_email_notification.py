@@ -193,6 +193,31 @@ class TestEmailNotification(unittest.TestCase):
             self.assertIn("data-qa@company.com", rec_dq)
             self.assertIn("Subject: [QUALITY WARN] Job 'Orders Processing' Status: DATA_QUALITY_FAILED", msg_dq)
 
+    def test_record_email_audit_telemetry(self):
+        """Verify record_email_audit creates structured audit telemetry dictionary."""
+        audit_entry = EmailNotification.record_email_audit(
+            notification_id="notif_test123",
+            job_id="customer_load",
+            job_name="Customer Load",
+            run_id="run_7777",
+            event_type="on_failure",
+            pipeline_status="FAILED",
+            sender="noreply@company.com",
+            recipients_to=["ops@company.com"],
+            recipients_cc=["lead@company.com"],
+            subject="[FAIL] Job Customer Load Failed",
+            template_used="job_failed",
+            email_status="SENT",
+            error_message=None
+        )
+
+        self.assertEqual(audit_entry["notification_id"], "notif_test123")
+        self.assertEqual(audit_entry["job_id"], "customer_load")
+        self.assertEqual(audit_entry["email_status"], "SENT")
+        self.assertEqual(audit_entry["recipients_to"], "ops@company.com")
+        self.assertEqual(audit_entry["recipients_cc"], "lead@company.com")
+        self.assertIn("sent_timestamp", audit_entry)
+
 
 if __name__ == "__main__":
     unittest.main()
