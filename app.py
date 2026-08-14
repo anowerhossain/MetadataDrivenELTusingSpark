@@ -97,7 +97,8 @@ def build_job_catalog(toml_files: List[str]) -> List[Dict[str, Any]]:
     catalog = []
     for filepath in toml_files:
         d = parse_toml_to_dict(filepath)
-        job_sec = d.get("job", {})
+        task_sec = d.get("task", {}) or d.get("job", {})
+        task_type = task_sec.get("type", "table_load")
         src_sec = d.get("source", {})
         load_sec = d.get("load", {})
         tgt_sec = d.get("target", {})
@@ -108,12 +109,13 @@ def build_job_catalog(toml_files: List[str]) -> List[Dict[str, Any]]:
 
         catalog.append({
             "File Name": os.path.basename(filepath),
-            "Task ID": job_sec.get("task_id", "N/A"),
-            "Task Name": job_sec.get("task_name", "N/A"),
-            "Status": "🟢 Active" if job_sec.get("enabled", True) else "🔴 Disabled",
-            "Enabled": job_sec.get("enabled", True),
+            "Task ID": task_sec.get("task_id", task_sec.get("job_id", "N/A")),
+            "Task Name": task_sec.get("task_name", task_sec.get("job_name", "N/A")),
+            "Task Type": task_type.upper(),
+            "Status": "🟢 Active" if task_sec.get("enabled", True) else "🔴 Disabled",
+            "Enabled": task_sec.get("enabled", True),
             "Email Alerts": email_str,
-            "Source Engine": src_sec.get("type", "N/A").upper(),
+            "Source Engine": src_sec.get("type", task_type).upper(),
             "Schema / Db": src_sec.get("schema", "N/A"),
             "Source Table": src_sec.get("table", "N/A"),
             "Load Type": load_sec.get("type", "N/A").upper(),
@@ -155,46 +157,56 @@ def toggle_job_enabled_state(filepath: str, new_state: bool):
 def generate_toml_string(
     task_id: str,
     task_name: str,
-    enabled: bool,
-    description: str,
-    source_type: str,
-    connection_name: str,
-    schema_name: str,
-    table_name: str,
-    columns_str: str,
-    exclude_cols_str: str,
-    jdbc_part_col: str,
-    jdbc_num_parts: int,
-    jdbc_fetch_size: int,
-    load_type: str,
-    watermark_col: str,
-    watermark_type: str,
-    primary_keys_str: str,
-    merge_keys_str: str,
-    target_catalog: str,
-    target_database: str,
-    target_table: str,
-    partition_col: str,
-    transform_rename_str: str,
-    transform_cast_str: str,
-    transform_derived_str: str,
-    audit_enabled: bool,
-    audit_insert_ts: str,
-    audit_updated_ts: str,
-    audit_task_id: str,
-    audit_source_sys: str,
-    audit_timezone: str,
-    preload_operations: List[str],
-    postload_operations: List[str],
-    null_checks_str: str,
-    unique_checks_str: str,
-    minimum_rows: int,
-    retries: int,
-    retry_delay: float,
-    backoff_multiplier: float,
-    exponential_backoff: bool,
-    resource_profile: str,
-    executor_memory: str,
+    enabled: bool = True,
+    description: str = "",
+    task_type: str = "table_load",
+    qlik_server_url: str = "",
+    qlik_task_name: str = "",
+    qlik_action: str = "RELOAD_TARGET",
+    qlik_sense_url: str = "",
+    qlik_sense_app_id: str = "",
+    qlik_np_url: str = "",
+    qlik_np_report_id: str = "",
+    qlik_np_output_format: str = "PDF",
+    source_type: str = "oracle",
+    connection_name: str = "oracle_prod",
+    schema_name: str = "BANK",
+    table_name: str = "CUSTOMER",
+    columns_str: str = "*",
+    exclude_cols_str: str = "",
+    jdbc_part_col: str = "",
+    jdbc_num_parts: int = 4,
+    jdbc_fetch_size: int = 10000,
+    load_type: str = "FULL",
+    watermark_col: str = "",
+    watermark_type: str = "timestamp",
+    primary_keys_str: str = "",
+    merge_keys_str: str = "",
+    target_catalog: str = "hive",
+    target_database: str = "edw_bronze",
+    target_table: str = "",
+    partition_col: str = "",
+    transform_rename_str: str = "",
+    transform_cast_str: str = "",
+    transform_derived_str: str = "",
+    audit_enabled: bool = True,
+    audit_insert_ts: str = "dwh_insert_ts",
+    audit_updated_ts: str = "dwh_updated_ts",
+    audit_task_id: str = "dwh_etl_run_id",
+    audit_source_sys: str = "dwh_job_user",
+    audit_timezone: str = "Asia/Dhaka",
+    preload_operations: List[str] = None,
+    postload_operations: List[str] = None,
+    null_checks_str: str = "",
+    unique_checks_str: str = "",
+    minimum_rows: int = 1,
+    retries: int = 3,
+    retry_delay: float = 30.0,
+    backoff_multiplier: float = 2.0,
+    exponential_backoff: bool = True,
+    resource_profile: str = "auto",
+    executor_memory: str = "",
+    shuffle_partitions: int = 0,
     sftp_path: str = "/remote/path/",
     sftp_file_pattern: str = "*.csv",
     sftp_file_format: str = "csv",
@@ -208,7 +220,7 @@ def generate_toml_string(
     email_to_str: str = "",
     email_cc_str: str = "",
     email_bcc_str: str = "",
-    email_subject_prefix: str = "[ETL JOB FAILURE]",
+    email_subject_prefix: str = "[ETL TASK FAILURE]",
     email_template: str = "job_failed",
     email_subject: str = "",
     email_succ_enabled: bool = False,
@@ -219,6 +231,53 @@ def generate_toml_string(
     email_dq_template: str = "data_quality_failed"
 ) -> str:
     """Constructs clean, standardized TOML string from form field inputs."""
+    if task_type == "qlik_replicate":
+        return f"""[task]
+task_id = "{task_id}"
+task_name = "{task_name}"
+type = "qlik_replicate"
+enabled = {str(enabled).lower()}
+description = "{description}"
+
+[qlik_replicate]
+server_url = "{qlik_server_url}"
+task_name = "{qlik_task_name}"
+action = "{qlik_action}"
+timeout_seconds = 300
+poll_interval_seconds = 5
+""".strip() + "\n"
+
+    elif task_type == "qlik_sense":
+        return f"""[task]
+task_id = "{task_id}"
+task_name = "{task_name}"
+type = "qlik_sense"
+enabled = {str(enabled).lower()}
+description = "{description}"
+
+[qlik_sense]
+server_url = "{qlik_sense_url}"
+app_id = "{qlik_sense_app_id}"
+timeout_seconds = 600
+poll_interval_seconds = 10
+""".strip() + "\n"
+
+    elif task_type == "qlik_nprinting":
+        return f"""[task]
+task_id = "{task_id}"
+task_name = "{task_name}"
+type = "qlik_nprinting"
+enabled = {str(enabled).lower()}
+description = "{description}"
+
+[qlik_nprinting]
+server_url = "{qlik_np_url}"
+report_id = "{qlik_np_report_id}"
+output_format = "{qlik_np_output_format}"
+timeout_seconds = 600
+poll_interval_seconds = 10
+""".strip() + "\n"
+
     cols_list = [c.strip() for c in columns_str.split(",") if c.strip()]
     excl_list = [c.strip() for c in exclude_cols_str.split(",") if c.strip()]
     pkeys_list = [c.strip() for c in primary_keys_str.split(",") if c.strip()]
@@ -237,6 +296,7 @@ def generate_toml_string(
     toml_content = f"""[task]
 task_id = "{task_id}"
 task_name = "{task_name}"
+type = "table_load"
 enabled = {str(enabled).lower()}
 description = "{description}"
 
@@ -411,9 +471,141 @@ subject_prefix = "[DATA QUALITY ALERT]"
 
 
 def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, current_filepath: str = ""):
-    """Renders guided visual form builder with field tooltips including transform rules & preload/postload hooks."""
-    job_sec = defaults.get("job", {})
+    """Renders guided visual form builder supporting Table Load, Qlik Replicate, Qlik Sense, and Qlik NPrinting tasks."""
+    task_sec = defaults.get("task", {}) or defaults.get("job", {})
     src_sec = defaults.get("source", {})
+    
+    st.markdown("### 🧩 Select Task Execution Module")
+    task_type_keys = ["table_load", "qlik_replicate", "qlik_sense", "qlik_nprinting"]
+    task_type_labels = [
+        "📊 Table Load (Database / SFTP -> Iceberg)",
+        "🔄 Qlik Replicate Task Refresh",
+        "📈 Qlik Sense Report Refresh",
+        "🖨️ Qlik NPrinting Report"
+    ]
+    cur_type = task_sec.get("type", "table_load").lower()
+    t_idx = task_type_keys.index(cur_type) if cur_type in task_type_keys else 0
+
+    sel_label = st.selectbox(
+        "Task Type*",
+        task_type_labels,
+        index=t_idx,
+        key="reactive_task_type_select_box",
+        help="Select the framework Task execution module: Table Load, Qlik Replicate, Qlik Sense, or Qlik NPrinting."
+    )
+    selected_task_type = task_type_keys[task_type_labels.index(sel_label)]
+
+    if selected_task_type == "qlik_replicate":
+        with st.form("visual_qlik_replicate_form"):
+            st.subheader("1. Task Header & Metadata")
+            c1, c2 = st.columns(2)
+            with c1:
+                t_id = st.text_input("Task ID*", value=task_sec.get("task_id", "qlik_orders_refresh"))
+                t_name = st.text_input("Task Name*", value=task_sec.get("task_name", "Qlik Replicate Orders Refresh"))
+            with c2:
+                t_enabled = st.checkbox("Task Active (Enabled)", value=task_sec.get("enabled", True))
+                t_desc = st.text_input("Task Description", value=task_sec.get("description", "Refresh Qlik Replicate Task"))
+
+            st.subheader("2. Qlik Replicate API Parameters")
+            qr_sec = defaults.get("qlik_replicate", {})
+            qr1, qr2 = st.columns(2)
+            with qr1:
+                qr_url = st.text_input("Qlik Replicate Server URL*", value=qr_sec.get("server_url", "https://qlik-em.company.com"))
+                qr_task = st.text_input("Replication Task Name*", value=qr_sec.get("task_name", "OracleToIcebergOrders"))
+            with qr2:
+                qr_action = st.selectbox("Action*", ["RELOAD_TARGET", "RESUME", "RUN"], index=0)
+
+            st.divider()
+            default_fname = os.path.basename(current_filepath) if is_editing else f"{t_id}.toml"
+            save_filename = st.text_input("Save TOML File Name*", value=default_fname)
+            form_saved = st.form_submit_button("💾 Save Task Configuration", type="primary")
+
+        if form_saved:
+            toml_str = generate_toml_string(
+                job_id=t_id, job_name=t_name, enabled=t_enabled, description=t_desc,
+                task_type="qlik_replicate", qlik_server_url=qr_url, qlik_task_name=qr_task, qlik_action=qr_action
+            )
+            save_path = os.path.join(CONFIG_DIR, save_filename if save_filename.endswith(".toml") else f"{save_filename}.toml")
+            with open(save_path, "w", encoding="utf-8") as f:
+                f.write(toml_str)
+            st.success(f"Successfully saved Qlik Replicate Task to `{save_path}`!")
+            st.rerun()
+        return
+
+    elif selected_task_type == "qlik_sense":
+        with st.form("visual_qlik_sense_form"):
+            st.subheader("1. Task Header & Metadata")
+            c1, c2 = st.columns(2)
+            with c1:
+                t_id = st.text_input("Task ID*", value=task_sec.get("task_id", "qlik_sense_sales"))
+                t_name = st.text_input("Task Name*", value=task_sec.get("task_name", "Qlik Sense Sales App Reload"))
+            with c2:
+                t_enabled = st.checkbox("Task Active (Enabled)", value=task_sec.get("enabled", True))
+                t_desc = st.text_input("Task Description", value=task_sec.get("description", "Reload Qlik Sense Sales App"))
+
+            st.subheader("2. Qlik Sense QRS API Parameters")
+            qs_sec = defaults.get("qlik_sense", {})
+            qs1, qs2 = st.columns(2)
+            with qs1:
+                qs_url = st.text_input("Qlik Sense Server URL*", value=qs_sec.get("server_url", "https://qlik-sense.company.com"))
+            with qs2:
+                qs_app = st.text_input("App ID / Task GUID*", value=qs_sec.get("app_id", "app-guid-12345"))
+
+            st.divider()
+            default_fname = os.path.basename(current_filepath) if is_editing else f"{t_id}.toml"
+            save_filename = st.text_input("Save TOML File Name*", value=default_fname)
+            form_saved = st.form_submit_button("💾 Save Task Configuration", type="primary")
+
+        if form_saved:
+            toml_str = generate_toml_string(
+                job_id=t_id, job_name=t_name, enabled=t_enabled, description=t_desc,
+                task_type="qlik_sense", qlik_sense_url=qs_url, qlik_sense_app_id=qs_app
+            )
+            save_path = os.path.join(CONFIG_DIR, save_filename if save_filename.endswith(".toml") else f"{save_filename}.toml")
+            with open(save_path, "w", encoding="utf-8") as f:
+                f.write(toml_str)
+            st.success(f"Successfully saved Qlik Sense Task to `{save_path}`!")
+            st.rerun()
+        return
+
+    elif selected_task_type == "qlik_nprinting":
+        with st.form("visual_qlik_nprinting_form"):
+            st.subheader("1. Task Header & Metadata")
+            c1, c2 = st.columns(2)
+            with c1:
+                t_id = st.text_input("Task ID*", value=task_sec.get("task_id", "qlik_np_fin_report"))
+                t_name = st.text_input("Task Name*", value=task_sec.get("task_name", "Financial NPrinting Report"))
+            with c2:
+                t_enabled = st.checkbox("Task Active (Enabled)", value=task_sec.get("enabled", True))
+                t_desc = st.text_input("Task Description", value=task_sec.get("description", "Generate Financial Report"))
+
+            st.subheader("2. Qlik NPrinting API Parameters")
+            np_sec = defaults.get("qlik_nprinting", {})
+            np1, np2 = st.columns(2)
+            with np1:
+                np_url = st.text_input("Qlik NPrinting Server URL*", value=np_sec.get("server_url", "https://nprinting.company.com:4993"))
+                np_rpt = st.text_input("Report ID / Task GUID*", value=np_sec.get("report_id", "rpt-guid-8888"))
+            with np2:
+                np_fmt = st.selectbox("Output Format*", ["PDF", "EXCEL", "CSV", "HTML"], index=0)
+
+            st.divider()
+            default_fname = os.path.basename(current_filepath) if is_editing else f"{t_id}.toml"
+            save_filename = st.text_input("Save TOML File Name*", value=default_fname)
+            form_saved = st.form_submit_button("💾 Save Task Configuration", type="primary")
+
+        if form_saved:
+            toml_str = generate_toml_string(
+                job_id=t_id, job_name=t_name, enabled=t_enabled, description=t_desc,
+                task_type="qlik_nprinting", qlik_np_url=np_url, qlik_np_report_id=np_rpt, qlik_np_output_format=np_fmt
+            )
+            save_path = os.path.join(CONFIG_DIR, save_filename if save_filename.endswith(".toml") else f"{save_filename}.toml")
+            with open(save_path, "w", encoding="utf-8") as f:
+                f.write(toml_str)
+            st.success(f"Successfully saved Qlik NPrinting Task to `{save_path}`!")
+            st.rerun()
+        return
+
+    job_sec = task_sec
     src_ext = src_sec.get("extraction", {})
     src_jdbc = src_sec.get("jdbc", {})
     load_sec = defaults.get("load", {})
@@ -462,8 +654,8 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
             sftp_file_format = "csv"
             st.caption("⚡ **RDBMS Direct Database Ingestion Mode**: Extracts relational tables using parallel JDBC partitioning.")
 
-    with st.form("visual_job_form"):
-        st.subheader("1. Job Configuration")
+    with st.form("visual_task_form"):
+        st.subheader("1. Task Header & Metadata")
         c1, c2 = st.columns(2)
         with c1:
             task_id = st.text_input(
@@ -478,7 +670,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
             )
         with c2:
             enabled = st.checkbox(
-                "Job Active (Enabled)",
+                "Task Active (Enabled)",
                 value=job_sec.get("enabled", True),
                 help="If unchecked, batch runner will skip this job file without executing."
             )
@@ -1123,7 +1315,7 @@ def main():
         sys.exit(1)
 
     st.set_page_config(
-        page_title="CDP Iceberg ETL Job Control Center",
+        page_title="CDP Iceberg ETL Task Control Center",
         page_icon="⚡",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -1189,7 +1381,7 @@ def main():
     # PAGE 1: Dashboard & Task Executor
     # -------------------------------------------------------------------------
     if page == "Dashboard & Task Executor":
-        st.header("📊 ETL Job Execution & Catalog Dashboard")
+        st.header("📊 ETL Task Execution & Catalog Dashboard")
 
         catalog_data = build_job_catalog(toml_files)
 
@@ -1213,7 +1405,7 @@ def main():
                     success_count += len(glob.glob(os.path.join(dp, "*.txt")))
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Total Configured Tasks", f"{total_jobs} Jobs")
+        m1.metric("Total Configured Tasks", f"{total_jobs} Tasks")
         m2.metric("Active Enabled Tasks", f"{active_jobs} Active")
         m3.metric("Successful Task Runs", f"{success_count} Successes")
         m4.metric("Pending Failures", f"{fail_count} Failures", delta_color="inverse")
@@ -1396,7 +1588,7 @@ def main():
     # PAGE 2: Task Builder
     # -------------------------------------------------------------------------
     elif page == "Task Builder":
-        st.header("Create new job")
+        st.header("Create New Task")
         st.markdown("Fill out the interactive form below with guided tooltips to generate a production TOML file.")
         render_visual_form(defaults={}, is_editing=False)
 
@@ -1404,7 +1596,7 @@ def main():
     # PAGE 3: TOML Task Editor & Configurator (Visual Form + Code Editor)
     # -------------------------------------------------------------------------
     elif page == "TOML Task Editor & Configurator":
-        st.header("✏️ Edit Existing TOML Job Configuration")
+        st.header("✏️ Edit Existing TOML Task Configuration")
         st.markdown("Select an existing job file to edit via **Visual Form Builder (Guided)** or **Raw TOML Code Editor**.")
 
         if not toml_files:
