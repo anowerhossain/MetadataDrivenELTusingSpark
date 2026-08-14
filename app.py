@@ -1,6 +1,6 @@
 """
 Production Streamlit Web UI Control Panel for PySpark Metadata-Driven ETL Framework.
-Enables interactive filterable job catalog with schema search, bulk status operations,
+Enables interactive filterable task catalog with schema search, bulk status operations,
 visual column transformations ([transform.rename], [transform.cast], [transform.derived]),
 pre-filled form editing, raw TOML editing, credential validation, execution, and failure recovery.
 """
@@ -108,8 +108,8 @@ def build_job_catalog(toml_files: List[str]) -> List[Dict[str, Any]]:
 
         catalog.append({
             "File Name": os.path.basename(filepath),
-            "Job ID": job_sec.get("job_id", "N/A"),
-            "Job Name": job_sec.get("job_name", "N/A"),
+            "Task ID": job_sec.get("task_id", "N/A"),
+            "Task Name": job_sec.get("task_name", "N/A"),
             "Status": "🟢 Active" if job_sec.get("enabled", True) else "🔴 Disabled",
             "Enabled": job_sec.get("enabled", True),
             "Email Alerts": email_str,
@@ -124,7 +124,7 @@ def build_job_catalog(toml_files: List[str]) -> List[Dict[str, Any]]:
 
 
 def toggle_job_enabled_state(filepath: str, new_state: bool):
-    """Toggles [job] enabled field directly in the TOML file."""
+    """Toggles [task] enabled field directly in the TOML file."""
     if not os.path.exists(filepath):
         return
     with open(filepath, "r", encoding="utf-8") as f:
@@ -137,7 +137,7 @@ def toggle_job_enabled_state(filepath: str, new_state: bool):
     for line in lines:
         stripped = line.strip()
         if stripped.startswith("[") and stripped.endswith("]"):
-            in_job_sec = (stripped == "[job]")
+            in_job_sec = (stripped == "[task]")
 
         if in_job_sec and line.strip().startswith("enabled"):
             updated.append(f"enabled = {str(new_state).lower()}\n")
@@ -153,8 +153,8 @@ def toggle_job_enabled_state(filepath: str, new_state: bool):
 
 
 def generate_toml_string(
-    job_id: str,
-    job_name: str,
+    task_id: str,
+    task_name: str,
     enabled: bool,
     description: str,
     source_type: str,
@@ -181,7 +181,7 @@ def generate_toml_string(
     audit_enabled: bool,
     audit_insert_ts: str,
     audit_updated_ts: str,
-    audit_job_id: str,
+    audit_task_id: str,
     audit_source_sys: str,
     audit_timezone: str,
     preload_operations: List[str],
@@ -234,9 +234,9 @@ def generate_toml_string(
     cast_dict = parse_kv_string_to_dict(transform_cast_str)
     derived_dict = parse_kv_string_to_dict(transform_derived_str)
 
-    toml_content = f"""[job]
-job_id = "{job_id}"
-job_name = "{job_name}"
+    toml_content = f"""[task]
+task_id = "{task_id}"
+task_name = "{task_name}"
 enabled = {str(enabled).lower()}
 description = "{description}"
 
@@ -327,13 +327,13 @@ orphan_file_retention_days = 3
             val_str = v if (v.startswith("'") or v.startswith('"') or v.lower() in ("true", "false") or v.isdigit()) else f'"{v}"'
             toml_content += f'{k} = {val_str}\n'
 
-    if audit_enabled or audit_insert_ts != "dwh_insert_ts" or audit_updated_ts != "dwh_updated_ts" or audit_job_id != "dwh_etl_run_id" or audit_source_sys != "dwh_job_user" or audit_timezone != "Asia/Dhaka":
+    if audit_enabled or audit_insert_ts != "dwh_insert_ts" or audit_updated_ts != "dwh_updated_ts" or audit_task_id != "dwh_etl_run_id" or audit_source_sys != "dwh_job_user" or audit_timezone != "Asia/Dhaka":
         toml_content += f"""
 [audit_columns]
 enabled = {str(audit_enabled).lower()}
 insert_ts_column = "{audit_insert_ts}"
 updated_ts_column = "{audit_updated_ts}"
-run_id_column = "{audit_job_id}"
+run_id_column = "{audit_task_id}"
 job_user_column = "{audit_source_sys}"
 timezone = "{audit_timezone}"
 """
@@ -466,14 +466,14 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
         st.subheader("1. Job Configuration")
         c1, c2 = st.columns(2)
         with c1:
-            job_id = st.text_input(
-                "Job ID*",
-                value=job_sec.get("job_id", "oracle_customer_load" if source_type != "sftp" else "sftp_invoices_load"),
+            task_id = st.text_input(
+                "Task ID*",
+                value=job_sec.get("task_id", "oracle_customer_load" if source_type != "sftp" else "sftp_invoices_load"),
                 help="Unique system identifier for the ETL job (e.g. mysql_orders_load). Used in logs and watermarks."
             )
-            job_name = st.text_input(
-                "Job Name*",
-                value=job_sec.get("job_name", "Oracle Customer Ingestion" if source_type != "sftp" else "SFTP File Ingestion"),
+            task_name = st.text_input(
+                "Task Name*",
+                value=job_sec.get("task_name", "Oracle Customer Ingestion" if source_type != "sftp" else "SFTP File Ingestion"),
                 help="Human-readable title describing what this pipeline job ingests."
             )
         with c2:
@@ -483,7 +483,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
                 help="If unchecked, batch runner will skip this job file without executing."
             )
             description = st.text_input(
-                "Job Description",
+                "Task Description",
                 value=job_sec.get("description", "Ingest dataset into Apache Iceberg Bronze layer"),
                 help="Brief business description of the pipeline job."
             )
@@ -785,9 +785,9 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
                 help="🔄 dwh_updated_ts: Bangladesh Standard Time (BST, UTC+6) timestamp recording the last update execution time."
             )
         with ac3:
-            audit_job_id = st.text_input(
+            audit_task_id = st.text_input(
                 "ETL Run ID Column",
-                value=audit_sec.get("run_id_column", audit_sec.get("job_id_column", "dwh_etl_run_id")),
+                value=audit_sec.get("run_id_column", audit_sec.get("task_id_column", "dwh_etl_run_id")),
                 help="🆔 dwh_etl_run_id: Unique pipeline execution run identifier."
             )
         with ac4:
@@ -957,7 +957,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
                 email_subject = st.text_input(
                     "Custom Subject Pattern (Optional)",
                     value=email_sec.get("subject", ""),
-                    help="Optional pattern (e.g. `{subject_prefix} Job '{job_name}' Status: {status}`). Leave empty for default."
+                    help="Optional pattern (e.g. `{subject_prefix} Job '{task_name}' Status: {status}`). Leave empty for default."
                 )
                 cc_val = email_sec.get("cc", [])
                 cc_str_init = ", ".join(cc_val) if isinstance(cc_val, list) else str(cc_val)
@@ -1026,7 +1026,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
         if is_editing:
             default_filename = os.path.basename(current_filepath)
         else:
-            default_filename = f"{job_id}.toml"
+            default_filename = f"{task_id}.toml"
 
         save_filename = st.text_input(
             "Save TOML File Name*",
@@ -1040,8 +1040,8 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
 
     if form_saved:
         generated_toml = generate_toml_string(
-            job_id=job_id,
-            job_name=job_name,
+            task_id=task_id,
+            task_name=task_name,
             enabled=enabled,
             description=description,
             source_type=source_type,
@@ -1068,7 +1068,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
             audit_enabled=audit_enabled,
             audit_insert_ts=audit_insert_ts,
             audit_updated_ts=audit_updated_ts,
-            audit_job_id=audit_job_id,
+            audit_task_id=audit_task_id,
             audit_source_sys=audit_source_sys,
             audit_timezone=audit_timezone,
             preload_operations=preload_operations,
@@ -1111,7 +1111,7 @@ def render_visual_form(defaults: Dict[str, Any], is_editing: bool = False, curre
         with open(final_path, "w", encoding="utf-8") as f:
             f.write(generated_toml)
 
-        st.success(f"Successfully saved TOML job configuration to `{final_path}`!")
+        st.success(f"Successfully saved TOML task configuration to `{final_path}`!")
         st.subheader("Generated TOML Preview:")
         st.code(generated_toml, language="toml")
         st.rerun()
@@ -1130,7 +1130,7 @@ def main():
     )
 
     if "current_page" not in st.session_state:
-        st.session_state.current_page = "Job Builder"
+        st.session_state.current_page = "Task Builder"
 
     st.markdown("""
         <style>
@@ -1167,9 +1167,9 @@ def main():
     st.sidebar.markdown("<div class='sidebar-nav-header'>NAVIGATION BAR</div>", unsafe_allow_html=True)
 
     nav_options = [
-        ("Job Builder", "builder"),
-        ("Dashboard & Job Executor", "dash"),
-        ("TOML Job Editor & Configurator", "editor"),
+        ("Task Builder", "builder"),
+        ("Dashboard & Task Executor", "dash"),
+        ("TOML Task Editor & Configurator", "editor"),
         ("Failure Recovery Center", "failure")
     ]
 
@@ -1186,9 +1186,9 @@ def main():
     toml_files = sorted(glob.glob(os.path.join(CONFIG_DIR, "*.toml")))
 
     # -------------------------------------------------------------------------
-    # PAGE 1: Dashboard & Job Executor
+    # PAGE 1: Dashboard & Task Executor
     # -------------------------------------------------------------------------
-    if page == "Dashboard & Job Executor":
+    if page == "Dashboard & Task Executor":
         st.header("📊 ETL Job Execution & Catalog Dashboard")
 
         catalog_data = build_job_catalog(toml_files)
@@ -1213,13 +1213,13 @@ def main():
                     success_count += len(glob.glob(os.path.join(dp, "*.txt")))
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Total Configured Jobs", f"{total_jobs} Jobs")
-        m2.metric("Active Enabled Jobs", f"{active_jobs} Active")
-        m3.metric("Successful Job Runs", f"{success_count} Successes")
+        m1.metric("Total Configured Tasks", f"{total_jobs} Jobs")
+        m2.metric("Active Enabled Tasks", f"{active_jobs} Active")
+        m3.metric("Successful Task Runs", f"{success_count} Successes")
         m4.metric("Pending Failures", f"{fail_count} Failures", delta_color="inverse")
 
         st.divider()
-        st.subheader("🗂️ Interactive Filterable Job Catalog")
+        st.subheader("🗂️ Interactive Filterable Task Catalog")
         st.markdown("Search and filter your ETL jobs by **Source Schema**, Engine Type, Load Mode, or Free Text search.")
 
         # Multi-Criteria Search & Filter Toolbar
@@ -1240,7 +1240,7 @@ def main():
         with f4:
             selected_status = st.selectbox("🔘 Filter by Status:", ["All Statuses", "Active (Enabled)", "Disabled"])
 
-        search_query = st.text_input("🔍 Search by Job ID, Job Name, or Table Name:", value="", help="Type any keyword to instantly filter the catalog grid.")
+        search_query = st.text_input("🔍 Search by Task ID, Task Name, or Table Name:", value="", help="Type any keyword to instantly filter the catalog grid.")
 
         # Filter Catalog List
         filtered_catalog = catalog_data
@@ -1259,17 +1259,17 @@ def main():
             q = search_query.strip().lower()
             filtered_catalog = [
                 i for i in filtered_catalog
-                if q in i["Job ID"].lower() or q in i["Job Name"].lower() or q in i["Source Table"].lower() or q in i["Schema / Db"].lower()
+                if q in i["Task ID"].lower() or q in i["Task Name"].lower() or q in i["Source Table"].lower() or q in i["Schema / Db"].lower()
             ]
 
         # Display Catalog Table Grid
         if pd is not None:
             df_catalog = pd.DataFrame(filtered_catalog)
             if not df_catalog.empty:
-                display_df = df_catalog[["File Name", "Job ID", "Job Name", "Source Engine", "Schema / Db", "Source Table", "Load Type", "Target Table", "Status"]]
+                display_df = df_catalog[["File Name", "Task ID", "Task Name", "Source Engine", "Schema / Db", "Source Table", "Load Type", "Target Table", "Status"]]
                 st.dataframe(display_df, use_container_width=True, hide_index=True)
             else:
-                st.info("No job configurations match the selected filter criteria.")
+                st.info("No task configurations match the selected filter criteria.")
         else:
             st.table(filtered_catalog)
 
@@ -1323,7 +1323,7 @@ def main():
         col1, col2 = st.columns([1, 1])
 
         with col1:
-            st.subheader("🎯 Single Job Execution")
+            st.subheader("🎯 Single Task Execution")
             if not filtered_catalog:
                 st.warning("No jobs available in the current filtered selection.")
                 selected_job = None
@@ -1344,7 +1344,7 @@ def main():
                 with qa1:
                     btn_val_single = st.button("🔍 Pre-flight Validate", key="val_single")
                 with qa2:
-                    btn_run_single = st.button("🚀 Run Job ETL", key="run_single", type="primary")
+                    btn_run_single = st.button("🚀 Run Task", key="run_single", type="primary")
                 with qa3:
                     toggle_btn_label = "🔴 Disable Job" if cur_enabled else "🟢 Enable Job"
                     if st.button(toggle_btn_label, key="toggle_job"):
@@ -1393,17 +1393,17 @@ def main():
                 log_container.code(log_text, language="text")
 
     # -------------------------------------------------------------------------
-    # PAGE 2: Job Builder
+    # PAGE 2: Task Builder
     # -------------------------------------------------------------------------
-    elif page == "Job Builder":
+    elif page == "Task Builder":
         st.header("Create new job")
         st.markdown("Fill out the interactive form below with guided tooltips to generate a production TOML file.")
         render_visual_form(defaults={}, is_editing=False)
 
     # -------------------------------------------------------------------------
-    # PAGE 3: TOML Job Editor & Configurator (Visual Form + Code Editor)
+    # PAGE 3: TOML Task Editor & Configurator (Visual Form + Code Editor)
     # -------------------------------------------------------------------------
-    elif page == "TOML Job Editor & Configurator":
+    elif page == "TOML Task Editor & Configurator":
         st.header("✏️ Edit Existing TOML Job Configuration")
         st.markdown("Select an existing job file to edit via **Visual Form Builder (Guided)** or **Raw TOML Code Editor**.")
 
