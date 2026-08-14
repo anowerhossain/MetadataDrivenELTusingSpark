@@ -1434,6 +1434,37 @@ def main():
 
     st.markdown("""
         <style>
+            /* Primary Theme Accent #4895EF with White Background Text */
+            button[kind="primary"], .stButton > button[kind="primary"], div.stButton > button[kind="primary"] {
+                background-color: #4895EF !important;
+                color: #FFFFFF !important;
+                border: 1px solid #4895EF !important;
+                font-weight: 600 !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 12px rgba(72, 149, 239, 0.25) !important;
+            }
+            button[kind="primary"]:hover, .stButton > button[kind="primary"]:hover {
+                background-color: #3b82d6 !important;
+                color: #FFFFFF !important;
+                border-color: #3b82d6 !important;
+                box-shadow: 0 6px 16px rgba(72, 149, 239, 0.4) !important;
+            }
+
+            /* Active Sidebar Navigation button */
+            [data-testid="stSidebar"] button[kind="primary"] {
+                background-color: #4895EF !important;
+                color: #FFFFFF !important;
+                border-color: #4895EF !important;
+            }
+
+            /* Tab highlight & selected states */
+            .stTabs [data-baseweb="tab-highlight"] {
+                background-color: #4895EF !important;
+            }
+            button[aria-selected="true"] {
+                color: #4895EF !important;
+            }
+
             [data-testid="stSidebar"] {
                 background-color: #0e1117;
                 padding-top: 1rem;
