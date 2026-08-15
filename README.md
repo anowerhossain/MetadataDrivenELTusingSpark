@@ -5,27 +5,121 @@
 [![Platform](https://img.shields.io/badge/Cloudera-CDP%207.x-red.svg)](https://www.cloudera.com/)
 [![Web UI](https://img.shields.io/badge/Streamlit-Control%20Panel-brightgreen.svg)](https://streamlit.io/)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-104%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-112%20Passing-success.svg)](tests/)
 
-A production-grade, enterprise metadata-driven ETL framework built with **Python**, **PySpark 3.x**, and **Apache Iceberg**, engineered for high-throughput execution on **Cloudera Data Platform (CDP)** using **TOML configuration files**.
+A production-grade, enterprise metadata-driven ETL and task orchestration framework built with **Python**, **PySpark 3.x**, and **Apache Iceberg**, engineered for high-throughput execution on **Cloudera Data Platform (CDP)** using **TOML configuration files**.
 
 ---
 
 ## 📌 Project Overview
 
-This framework automates and standardizes high-volume enterprise data ingestion from **Oracle Database**, **Microsoft SQL Server**, **MySQL Database**, **PostgreSQL Database**, and **SFTP File Shares (CSV / Excel)** into **Apache Iceberg** target tables cataloged directly in **CDP Hive Metastore**.
+This framework automates and standardizes high-volume enterprise data ingestion from **Oracle Database**, **Microsoft SQL Server**, **MySQL Database**, **PostgreSQL Database**, and **SFTP File Shares (CSV / Excel)** into **Apache Iceberg** target tables cataloged directly in **CDP Hive Metastore**, as well as triggering external **Qlik Replicate**, **Qlik Sense**, and **Qlik NPrinting** data replication and reporting tasks.
 
-Instead of writing custom PySpark scripts for every table, this framework is **100% metadata-driven**. Onboarding a new database table or file feed requires **zero code changes**—simply define a single `.toml` job configuration file specifying the source, extraction boundaries, column transformations, data quality rules, target partitioning, schema evolution, pre/postload hooks, retry policies, and multi-event email routing.
+Instead of writing custom PySpark scripts for every pipeline, this framework is **100% metadata-driven and task-centric**. Onboarding a new database table, file feed, or Qlik task requires **zero code changes**—simply define a single `.toml` task configuration file in `config/tasks/`.
 
 ---
 
-## 🌐 Streamlit Web UI Control Panel (`app.py`)
+## 🚀 CDP Deployment Guide & Step-by-Step Instructions
 
-The project includes an interactive, browser-based **Streamlit Web Application** for building, editing, validating, executing, and rerunning job pipelines visually without touching the command line.
+This section outlines how to package, deploy, and execute the framework on **Cloudera Data Platform (CDP)** (CDP Edge Node / Gateway Host / CDE Cluster).
 
-### Launching the Web UI:
+### 📋 1. File Deployment Manifest (CDP Edge Node)
+
+When copying the project to a CDP Gateway Host / Edge Node (e.g. `/opt/cloudera/etl_framework/`), include only production files:
+
+| File / Folder Path | Required in CDP? | Description |
+| :--- | :---: | :--- |
+| `main.py` | ✅ **REQUIRED** | Core CLI Batch Driver & Entry Point. |
+| `src/` | ✅ **REQUIRED** | Core framework engine (Connectors, Tasks, Writers, Transformers, Helpers). |
+| `config/tasks/` | ✅ **REQUIRED** | Task TOML pipeline configuration directory. |
+| `config/connections.toml` | ✅ **REQUIRED** | Environment connection parameters (Host, Port, DB Name, SFTP Path). |
+| `credentials.toml` | ✅ **REQUIRED** | Protected secrets (DB Passwords, API Tokens, SMTP Passwords). Protected by `.gitignore`. |
+| `sql/` | ✅ **REQUIRED** | DDL scripts for Apache Iceberg audit, watermark, and RBAC tables. |
+| `templates/` | ✅ **REQUIRED** | Responsive HTML email alert templates. |
+| `web_ui/` | 💡 *OPTIONAL* | Streamlit Control Center UI (Required if running Web UI on Edge Node). |
+| `requirements.txt` | ✅ **REQUIRED** | Python dependencies (`tomli`, `pytz`, `requests`, `streamlit`, `pandas`). |
+| `tests/` | ❌ **EXCLUDE** | Local unit test suite (Exclude from prod deployment). |
+| `scratch/` | ❌ **EXCLUDE** | Scratch development scripts (Exclude from prod deployment). |
+| `.git/` | ❌ **EXCLUDE** | Git repository metadata (Exclude from prod deployment). |
+
+---
+
+### 🔑 2. CDP Deployment & Execution Commands
+
+#### Step A: Authenticate Kerberos (CDP Secured Cluster)
 ```bash
-streamlit run web_ui/app.py
+kinit -kt /etc/security/keytabs/etluser.keytab etluser@REALM.COMPANY.COM
+```
+
+#### Step B: Install Python Dependencies on Edge Node
+```bash
+pip install -r requirements.txt
+```
+
+#### Step C: Initialize Apache Iceberg Audit & Watermark Tables
+Run the SQL DDL scripts using Spark SQL or Beeline to create metastore tables (`etl_audit`, `etl_watermark`):
+```bash
+spark-sql -f sql/01_create_audit_tables_ddl.sql
+spark-sql -f sql/02_create_watermark_tables_ddl.sql
+spark-sql -f sql/03_create_audit_tables_ddl.sql
+spark-sql -f sql/04_create_rbac_tables_ddl.sql
+```
+
+#### Step D: Pre-Flight Connection Check (`--validate`)
+Validate source database/SFTP connectivity and credentials without starting Spark:
+```bash
+python main.py --validate --config config/tasks/customer.toml
+```
+
+#### Step E: Execute Single Task on CDP YARN Cluster (`spark-submit`)
+```bash
+spark-submit \
+  --master yarn \
+  --deploy-mode client \
+  --driver-memory 4g \
+  --executor-memory 8g \
+  --executor-cores 4 \
+  --num-executors 10 \
+  --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.2.0 \
+  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
+  --conf spark.sql.catalog.hive=org.apache.iceberg.spark.SparkCatalog \
+  --conf spark.sql.catalog.hive.type=hive \
+  --conf spark.sql.catalog.hive.uri=thrift://cdp-hms-host:9083 \
+  main.py --config config/tasks/customer.toml
+```
+
+#### Step F: Parallel Batch Execution (All Active Tasks in `config/tasks/`)
+Submit multiple task pipelines in parallel using YARN resource pooling:
+```bash
+spark-submit \
+  --master yarn \
+  --deploy-mode client \
+  --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.2.0 \
+  main.py --config-dir config/tasks --parallel 4
+```
+
+#### Step G: Dry-Run Mode (Validate All Configurations)
+```bash
+python main.py --config-dir config/tasks --dry-run
+```
+
+#### Step H: Automated Failure Recovery / Deduplicated Rerun
+Rerun only failed tasks recorded in `failed_jobs/YYYYMMDD/`:
+```bash
+spark-submit \
+  --master yarn \
+  --deploy-mode client \
+  main.py --rerun-failed 20260815 --parallel 4
+```
+
+---
+
+## 🌐 Streamlit Web UI Control Panel (`web_ui/app.py`)
+
+Launch the interactive, browser-based Web UI on a CDP Edge Node or Gateway Host:
+
+```bash
+streamlit run web_ui/app.py --server.port 8501
 ```
 *Access in browser at: `http://localhost:8501`*
 
@@ -42,65 +136,24 @@ streamlit run web_ui/app.py
 
 ---
 
-## 🏗️ Architecture & Component Workflow
+## 🧩 Complete Task Taxonomy
 
-```text
-                     TOML Job Config (config/tasks/*.toml)
-                                      │
-                                      ▼
-  Database / SFTP Connection Resolver (Oracle / SQL Server / MySQL / Postgres / SFTP)
-                                      │
-                                      ▼
-                 Pre-flight Connection Check (--validate)
-                                      │
-                                      ▼
-                       CDP SparkSession Factory
-                                      │
-                                      ▼
-                Step 1: Preload Hooks ([preload] operations)
-                ├── validate_source (Credential & table check)
-                ├── validate_target (Iceberg catalog check)
-                └── check_watermark (Retrieve previous state)
-                                      │
-                                      ▼
-                Step 2: Source Extraction (ReaderFactory)
-                ├── JDBC Parallel Splitting ([source.jdbc])
-                ├── SFTP Ingestion (CSV / Excel .xlsx)
-                └── Watermark Filtering ([load.incremental])
-                                      │
-                                      ▼
-                Step 3: Data Transformation (DataTransformer)
-                ├── Column Renaming ([transform.rename])
-                ├── Data Type Casting ([transform.cast])
-                ├── Derived Columns ([transform.derived])
-                └── DWH Audit Injections (insert_ts, updated_ts, run_id, user)
-                                      │
-                                      ▼
-                Step 4: Data Quality Validation (DataQualityValidator)
-                ├── null_check (Fail fast on unexpected nulls)
-                ├── unique_check (Verify primary key uniqueness)
-                └── minimum_rows (Threshold verification)
-                                      │
-                                      ▼
-                Step 5: Iceberg Target Write & Schema Evolution
-                ├── Additive Schema Evolution ([schema] evolution/add_columns)
-                ├── Target Partitioning ([target.partition] days/months/years)
-                ├── Full Overwrite / Append
-                └── Merge Upsert (MERGE INTO using [keys] merge_keys)
-                                      │
-                                      ▼
-                Step 6: Postload Hooks ([postload] operations)
-                ├── update_watermark (Committed ONLY after write success)
-                ├── compact_table (Iceberg rewrite_data_files)
-                └── refresh_metadata (REFRESH TABLE in Hive Catalog)
-                                      │
-                                      ▼
-           Multi-Event Email Notification & Audit Telemetry Logging
-           ├── on_failure (Route error tracebacks to DevOps/On-Call)
-           ├── on_success (Route completion reports to Business Owners)
-           ├── on_quality_failure (Route QA warnings to Data Governance)
-           └── etl_audit.etl_email_audit (Iceberg Audit Persistence)
+All execution units implement the **`BaseTask`** abstract interface (`src/core/task.py`):
+
+```mermaid
+graph TD
+    BaseTask["BaseTask (Abstract Base)"] --> TableLoad["TableLoadTask (type = 'table_load')"]
+    BaseTask --> QlikReplicate["QlikReplicateRefreshTask (type = 'qlik_replicate')"]
+    BaseTask --> QlikSense["QlikSenseRefreshTask (type = 'qlik_sense')"]
+    BaseTask --> QlikNPrinting["QlikNPrintingTask (type = 'qlik_nprinting')"]
 ```
+
+| Task Type | Implementation Class | Description | Config Section |
+| :--- | :--- | :--- | :--- |
+| `table_load` | `TableLoadTask` | Database & SFTP source extraction, PySpark transformations, Quality checks, Iceberg loading. | `[task]`, `[source]`, `[target]` |
+| `qlik_replicate` | `QlikReplicateRefreshTask` | Triggers & monitors Qlik Replicate tasks via REST API (`RELOAD_TARGET`, `RESUME`, `RUN`). | `[task]`, `[qlik_replicate]` |
+| `qlik_sense` | `QlikSenseRefreshTask` | Triggers & monitors Qlik Sense App / Report reloads via QRS REST API. | `[task]`, `[qlik_sense]` |
+| `qlik_nprinting` | `QlikNPrintingTask` | Triggers & monitors Qlik NPrinting report generation via NPrinting REST API. | `[task]`, `[qlik_nprinting]` |
 
 ---
 
@@ -112,11 +165,11 @@ The framework features a dedicated **Email Template Engine** (`src/helpers/email
 ```sql
 CREATE TABLE IF NOT EXISTS etl_audit.etl_email_audit (
     notification_id     STRING          COMMENT 'Unique Email Notification Run UUID',
-    job_id              STRING          COMMENT 'ETL Job ID (e.g. customer_load, sqlserver_invoices)',
-    job_name            STRING          COMMENT 'Descriptive Job Name',
+    job_id              STRING          COMMENT 'Task ID',
+    job_name            STRING          COMMENT 'Descriptive Task Name',
     run_id              STRING          COMMENT 'Execution Run ID',
-    event_type          STRING          COMMENT 'Event Trigger (on_failure, on_success, on_quality_failure, etc.)',
-    pipeline_status     STRING          COMMENT 'Pipeline Execution Status (FAILED, SUCCESS, etc.)',
+    event_type          STRING          COMMENT 'Event Trigger (on_failure, on_success, on_quality_failure)',
+    pipeline_status     STRING          COMMENT 'Pipeline Execution Status (FAILED, SUCCESS)',
     sender              STRING          COMMENT 'Sender Email Address (From)',
     recipients_to       STRING          COMMENT 'Comma-separated Primary Recipients (To)',
     recipients_cc       STRING          COMMENT 'Comma-separated CC Recipients',
@@ -135,23 +188,18 @@ TBLPROPERTIES ('format-version' = '2');
 
 ## ⚡ Dual-Level Parallelism Architecture
 
-The framework is engineered to scale across enterprise data lakes using **two complementary levels of parallelism**:
-
 ```text
                        spark-submit main.py --config-dir config/tasks/ --parallel 4
                                                      │
        ┌───────────────────────┬─────────────────────┴─────────────────────┬───────────────────────┐
        ▼                       ▼                                           ▼                       ▼
 Worker Thread 1         Worker Thread 2                             Worker Thread 3         Worker Thread 4
-(Job: customer.toml)    (Job: sqlserver_inv.toml)                   (Job: sftp_invoices.toml)(Job: mysql_orders.toml)
- (Oracle Database)       (MS SQL Server)                             (SFTP Server)            (MySQL Database)
+(Task: customer.toml)   (Task: sqlserver_inv.toml)                  (Task: sftp_invoices.toml) (Task: qlik_orders.toml)
+ (Oracle Database)       (MS SQL Server)                             (SFTP Server)            (Qlik Replicate REST API)
        │                       │                                           │                       │
-Spark JDBC Splits       Spark JDBC Splits                           SFTP CSV/Excel Read     Spark JDBC Splits
-([source.jdbc] n=8)     ([source.jdbc] n=4)                         (Pandas/Spark CSV)      ([source.jdbc] n=4)
- ┌───┬───┬───┬───┐       ┌───┬───┬───┬───┐                                                   ┌───┬───┬───┬───┐
- ▼   ▼   ▼   ▼       ▼   ▼   ▼   ▼                                                   ▼   ▼   ▼   ▼
-Oracle Queries 1..8     SQL Server Queries 1..4                                             MySQL Queries 1..4
- └───┴───┴───┴───────┴───┴───┴───┴───────────────────────────────────────────────────────────┴───┴───┴───┘
+Spark JDBC Splits       Spark JDBC Splits                           SFTP CSV/Excel Read     Qlik REST API Poll
+([source.jdbc] n=8)     ([source.jdbc] n=4)                         (Pandas/Spark CSV)      (Action RELOAD_TARGET)
+  └───┴───┴───┴───────┴───┴───┴───┴───────────────────────────────────────────────────────────┴───┴───┴───┘
                                                      │
                                                      ▼
                                     YARN Executor Cluster Resource Pool
@@ -164,7 +212,7 @@ Oracle Queries 1..8     SQL Server Queries 1..4                                 
 
 ## 🧪 Running Unit Tests
 
-Run the full automated unit test suite locally (**104 tests** across 20 test modules):
+Run the full automated unit test suite locally (**112 tests** across 21 test modules):
 
 ```bash
 python -m unittest discover tests
@@ -176,31 +224,37 @@ python -m unittest discover tests
 
 ```text
 Extraction_v2.1/
-├── app.py                      # Streamlit Web Control Panel
+├── app.py                      # Root Streamlit Wrapper (Backward Compatible)
 ├── main.py                     # CLI Entry Point Driver
-├── requirements.txt            # Local Development Dependencies
+├── requirements.txt            # Python Dependencies
 ├── README.md                   # Enterprise Technical Documentation
+├── web_ui/
+│   └── app.py                  # Streamlit Web Control Center & RBAC Login
 ├── config/
-│   └── jobs/                   # TOML Pipeline Configuration Directory
+│   ├── connections.toml        # Environment Database Connections
+│   └── tasks/                  # TOML Task Pipeline Configuration Directory
 ├── failed_jobs/                # Audit Failure Marker Storage (YYYYMMDD/)
 ├── success_jobs/               # Audit Success Marker Storage (YYYYMMDD/)
 ├── sql/
-│   ├── 01_create_databases.sql
-│   ├── 02_create_target_tables_ddl.sql
-│   ├── 03_create_audit_tables_ddl.sql # Includes etl_audit.etl_email_audit DDL
-│   └── 04_sample_data_dml.sql
+│   ├── 01_create_audit_tables_ddl.sql    # etl_audit persistence DDL
+│   ├── 02_create_watermark_tables_ddl.sql# etl_watermark DDL
+│   ├── 03_create_audit_tables_ddl.sql    # etl_email_audit Persistence DDL
+│   └── 04_create_rbac_tables_ddl.sql     # etl_users & etl_user_permissions DDL
+├── templates/                  # Responsive HTML Email Notification Templates
 ├── src/                        # Core Framework Package
-│   ├── connectors/             # Oracle, SQL Server, MySQL, Postgres, SFTP Readers & Resolvers
-│   ├── core/                   # Config Parser, Transformer, Writer, Quality Validator, Hooks, State
-│   └── helpers/                # Dedicated Infrastructure Helpers
-│       ├── __init__.py
+│   ├── connectors/             # Oracle, SQL Server, MySQL, Postgres, SFTP Readers
+│   ├── core/                   # Task Engine (BaseTask, TableLoadTask), Config Parser, Transformer, Writer, Quality, Hooks
+│   └── helpers/                # Framework Helpers
 │       ├── spark.py            # SparkSession Factory (CDP Hive Metastore & Iceberg)
+│       ├── qlik_replicate.py   # QlikReplicateRefreshTask Module
+│       ├── qlik_sense.py       # QlikSenseRefreshTask Module
+│       ├── qlik_nprinting.py    # QlikNPrintingTask Module
 │       ├── logger.py           # ETLLogger & JSON Telemetry
 │       ├── failure.py          # Failure Marker Recorder
 │       ├── success.py          # Success Marker Recorder
-│       ├── retry.py            # Retry Handler with Backoff
+│       ├── retry.py            # Retry Handler with Exponential Backoff
 │       ├── tuner.py            # Spark Resource & Fetch Size Tuner
 │       ├── email_notification.py # Email Delivery & etl_email_audit Persistence
 │       └── email_template.py   # Reusable HTML Template Engine & HTML Tables
-└── tests/                      # Automated Unit Test Suite (104 unit tests)
+└── tests/                      # Automated Unit Test Suite (112 unit tests passing)
 ```
