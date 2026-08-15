@@ -1352,6 +1352,27 @@ def has_permission(permission: str) -> bool:
     return permission in ROLE_PERMISSIONS.get(role, [])
 
 
+def render_mermaid_diagram(mermaid_syntax: str, height: int = 350):
+    """Renders live graphical flowchart diagrams using Mermaid.js CDN."""
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script type="module">
+            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+            mermaid.initialize({{ startOnLoad: true, theme: 'forest' }});
+        </script>
+    </head>
+    <body style="background-color: transparent; margin: 0; padding: 10px; font-family: sans-serif;">
+        <div class="mermaid">
+        {mermaid_syntax}
+        </div>
+    </body>
+    </html>
+    """
+    st.components.v1.html(html_code, height=height, scrolling=True)
+
+
 def render_login_page():
     """Renders professional Streamlit User Authentication Login Page."""
     st.markdown("""
@@ -1753,9 +1774,11 @@ def main():
 
         c1, c2 = st.columns([2, 1])
         with c1:
-            st.subheader("📊 Interactive Mermaid.js Visual DAG Flow")
+            st.subheader("📊 Live Graphical Task DAG Flowchart")
             mermaid_syntax = runner.build_mermaid_dag()
-            st.code(mermaid_syntax, language="mermaid")
+            render_mermaid_diagram(mermaid_syntax, height=350)
+            with st.expander("🔍 View Raw Mermaid.js Code"):
+                st.code(mermaid_syntax, language="mermaid")
 
         with c2:
             st.subheader("⚡ Luigi Pipeline Execution")
