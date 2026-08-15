@@ -1,19 +1,52 @@
-# Metadata-Driven PySpark ETL Framework Requirements
-# ===================================================
+# ============================================================================
+# Enterprise PySpark & Apache Iceberg Framework - Python Requirements
+# Cloudera Data Platform (CDP) Edge Node & Gateway Host Deployment
+# ============================================================================
 
-# TOML parsing fallback for Python < 3.11 (Required for Python 3.7-3.10)
-tomli>=2.0.0; python_version < '3.11'
+# ----------------------------------------------------------------------------
+# 1. TOML Configuration Parser (Python < 3.11 Support)
+# ----------------------------------------------------------------------------
+tomli>=2.0.1; python_version < '3.11'
+toml>=0.10.2
 
-# PySpark Engine (Provided by CDP runtime on cluster, required for local dev/testing)
+# ----------------------------------------------------------------------------
+# 2. PySpark Engine & Timezone Utilities
+# (Note: PySpark runtime is provided by CDP Spark parcel; required for local dev & pre-flight checks)
+# ----------------------------------------------------------------------------
 pyspark>=3.2.0
+pytz>=2023.3
 
-# Management Web UI Control Panel (app.py) & Data Utilities
-streamlit>=1.20.0
-pandas>=1.3.0
+# ----------------------------------------------------------------------------
+# 3. Database Connectors & SFTP Drivers (For python main.py --validate checks)
+# ----------------------------------------------------------------------------
+oracledb>=1.4.0         # Oracle Database Native Python Driver
+pymysql>=1.1.0          # MySQL Database Driver
+psycopg2-binary>=2.9.9  # PostgreSQL Database Driver
+pymssql>=2.2.8          # Microsoft SQL Server Driver
+paramiko>=3.4.0         # SFTP Protocol & Remote File Discovery Driver
 
-# Unit Testing & CI Verification
-pytest>=7.0.0
+# ----------------------------------------------------------------------------
+# 4. Data File & Excel Feed Processing
+# ----------------------------------------------------------------------------
+pandas>=1.5.3           # Tabular Data Processing & Catalog Displays
+openpyxl>=3.1.2         # Microsoft Excel (.xlsx/.xls) Parser for SFTP Ingestion
 
-# CDP Deployment Note:
-# When executing on CDP via `spark-submit main.py`, the CDP cluster parcel
-# provides PySpark, Hive Metastore connectivity, and JDBC drivers natively.
+# ----------------------------------------------------------------------------
+# 5. REST API Transport (Qlik Replicate, Qlik Sense QRS, Qlik NPrinting APIs)
+# ----------------------------------------------------------------------------
+requests>=2.31.0
+urllib3>=2.0.0
+
+# ----------------------------------------------------------------------------
+# 6. Streamlit Web UI Control Panel (web_ui/app.py) & RBAC
+# ----------------------------------------------------------------------------
+streamlit>=1.30.0
+
+# ----------------------------------------------------------------------------
+# 7. Enterprise CDP Cluster Installation Note
+# ----------------------------------------------------------------------------
+# To install on CDP Edge Node Python virtual environment:
+#   python3 -m venv /opt/cloudera/venv_etl
+#   source /opt/cloudera/venv_etl/bin/activate
+#   pip install --upgrade pip
+#   pip install -r requirements.txt
