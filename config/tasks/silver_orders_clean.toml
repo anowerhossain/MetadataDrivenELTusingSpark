@@ -1,0 +1,22 @@
+# Silver Orders Clean TOML Task Configuration
+[task]
+task_id = "silver_orders_clean"
+task_name = "Silver Clean Orders Transformation"
+type = "table_load"
+enabled = true
+depends_on = ["bronze_orders_load"]
+description = "Cleans and deduplicates orders from Bronze table into Silver Apache Iceberg catalog table."
+
+[source]
+type = "postgres"
+connection = "postgres_db"
+schema = "bronze_db"
+table = "raw_orders"
+
+[load]
+type = "full"
+
+[target]
+catalog = "hive"
+database = "silver_db"
+table = "clean_orders"

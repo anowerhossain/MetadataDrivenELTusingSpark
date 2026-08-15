@@ -1,0 +1,22 @@
+# Bronze Orders Load TOML Task Configuration
+[task]
+task_id = "bronze_orders_load"
+task_name = "Bronze Raw Orders Ingestion"
+type = "table_load"
+enabled = true
+depends_on = []
+description = "Ingests raw order transactions from Oracle Database into Bronze Apache Iceberg catalog table."
+
+[source]
+type = "oracle"
+connection = "oracle_db"
+schema = "SALES"
+table = "ORDERS"
+
+[load]
+type = "full"
+
+[target]
+catalog = "hive"
+database = "bronze_db"
+table = "raw_orders"

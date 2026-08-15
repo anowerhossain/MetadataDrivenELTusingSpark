@@ -1511,6 +1511,7 @@ def main():
 
     all_nav_options = [
         ("Dashboard & Task Executor", "dash", "VIEW_CATALOG"),
+        ("Luigi Workflow Orchestrator (DAG)", "luigi", "VIEW_CATALOG"),
         ("Task Builder", "builder", "CREATE_TASK"),
         ("TOML Task Editor & Configurator", "editor", "EDIT_TASK"),
         ("Failure Recovery Center", "failure", "EXECUTE_TASK"),
@@ -1736,6 +1737,42 @@ def main():
             for line in run_command_stream(cmd):
                 log_text += line
                 log_container.code(log_text, language="text")
+
+    # -------------------------------------------------------------------------
+    # PAGE 1.5: Luigi Workflow Orchestrator (DAG)
+    # -------------------------------------------------------------------------
+    elif page == "Luigi Workflow Orchestrator (DAG)":
+        st.header("🕸️ Spotify Luigi Workflow Orchestrator & Visual DAG Tree")
+        st.markdown(
+            "Inspect task dependency graphs (**Bronze → Silver → Gold**), resolve workflow order, "
+            "and execute Luigi DAG pipelines with concurrent worker threads."
+        )
+
+        from src.helpers.luigi_runner import LuigiRunner
+        runner = LuigiRunner(config_dir=CONFIG_DIR)
+
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            st.subheader("📊 Interactive Mermaid.js Visual DAG Flow")
+            mermaid_syntax = runner.build_mermaid_dag()
+            st.code(mermaid_syntax, language="mermaid")
+
+        with c2:
+            st.subheader("⚡ Luigi Pipeline Execution")
+            workers = st.slider("Parallel Worker Threads", min_value=1, max_value=16, value=4, key="luigi_workers_slider")
+            local_sched = st.checkbox("Use Local Scheduler", value=True, key="luigi_local_sched_chk")
+
+            if st.button("🚀 Launch Luigi Pipeline DAG Execution", type="primary", use_container_width=True, key="btn_run_luigi"):
+                cmd = [sys.executable, "main.py", "--use-luigi", "--config-dir", CONFIG_DIR, "--parallel", str(workers)]
+                log_text = f"Running command: {' '.join(cmd)}\n\n"
+                log_box = st.empty()
+                for line in run_command_stream(cmd):
+                    log_text += line
+                    log_box.code(log_text, language="text")
+
+        st.divider()
+        st.subheader("📜 ASCII Task Dependency Graph Summary")
+        st.text(runner.generate_ascii_dag_summary())
 
     # -------------------------------------------------------------------------
     # PAGE 2: Task Builder

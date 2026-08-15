@@ -84,6 +84,7 @@ class JobSection:
     job_name: str
     enabled: bool
     description: Optional[str] = ""
+    depends_on: List[str] = field(default_factory=list)
 
     @property
     def task_id(self) -> str:
@@ -112,11 +113,20 @@ class JobSection:
 
         description = str(data.get("description", "")).strip()
 
+        raw_deps = data.get("depends_on", [])
+        if isinstance(raw_deps, str):
+            depends_on = [d.strip() for d in raw_deps.split(",") if d.strip()]
+        elif isinstance(raw_deps, list):
+            depends_on = [str(d).strip() for d in raw_deps if str(d).strip()]
+        else:
+            depends_on = []
+
         return cls(
             job_id=job_id.strip(),
             job_name=job_name.strip(),
             enabled=enabled,
             description=description,
+            depends_on=depends_on,
         )
 
 
@@ -1015,6 +1025,7 @@ class JobConfig:
     email_notification: EmailNotificationSection = field(default_factory=EmailNotificationSection)
     spark: Dict[str, Any] = field(default_factory=dict)
     jdbc: Optional[JDBCSection] = None
+    raw_config: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def resource(self) -> ResourceSection:
@@ -1029,14 +1040,30 @@ class JobConfig:
         if not job_raw:
             raise ConfigError("Missing required section '[task]' or '[job]' in TOML configuration.")
 
-        for req_sec in ("source", "load", "target"):
-            if req_sec not in data:
-                raise ConfigError(f"Missing required section '[{req_sec}]' in TOML configuration.")
+        task_type = str(job_raw.get("type", "table_load")).lower()
+
+        # For table_load tasks, source, load, and target are required
+        if task_type in ("table_load", "generic"):
+            for req_sec in ("source", "load", "target"):
+                if req_sec not in data:
+                    raise ConfigError(f"Missing required section '[{req_sec}]' in TOML configuration.")
 
         job_sec = JobSection.from_dict(job_raw)
-        source_sec = SourceSection.from_dict(data["source"])
-        load_sec = LoadSection.from_dict(data["load"])
-        target_sec = TargetSection.from_dict(data["target"])
+
+        if "source" in data:
+            source_sec = SourceSection.from_dict(data["source"])
+        else:
+            source_sec = SourceSection(type=SourceType.ORACLE, table="dummy", connection="dummy", schema="dummy")
+
+        if "load" in data:
+            load_sec = LoadSection.from_dict(data["load"])
+        else:
+            load_sec = LoadSection(type=LoadType.FULL)
+
+        if "target" in data:
+            target_sec = TargetSection.from_dict(data["target"])
+        else:
+            target_sec = TargetSection(database="dummy", table="dummy", catalog="hive")
 
         keys_sec = KeysSection.from_dict(data["keys"]) if "keys" in data else KeysSection()
         transform_sec = TransformSection.from_dict(data["transform"]) if "transform" in data else TransformSection()
@@ -1087,6 +1114,7 @@ class JobConfig:
             email_notification=email_sec,
             spark=spark_dict,
             jdbc=jdbc_sec,
+            raw_config=data,
         )
 
     @property

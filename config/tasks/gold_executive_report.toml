@@ -1,0 +1,14 @@
+# Gold Executive Report TOML Task Configuration
+[task]
+task_id = "gold_executive_report"
+task_name = "Gold Executive Report Reload"
+type = "qlik_sense"
+enabled = true
+depends_on = ["silver_orders_clean"]
+description = "Triggers Qlik Sense App reload for Executive Dashboard after Silver orders transformation completes."
+
+[qlik_sense]
+server_url = "https://qliksense.bank.local"
+app_id = "app-guid-executive-dash"
+timeout_seconds = 300
+poll_interval_seconds = 5

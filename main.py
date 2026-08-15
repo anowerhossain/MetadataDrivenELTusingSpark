@@ -401,9 +401,30 @@ if __name__ == "__main__":
         action="store_true",
         help="Force job execution even if job already succeeded today"
     )
+    parser.add_argument(
+        "--use-luigi",
+        action="store_true",
+        help="Use Spotify Luigi orchestration engine to execute metadata-driven DAG task workflows"
+    )
     args = parser.parse_args()
 
-    if args.config:
+    if args.use_luigi:
+        from src.helpers.luigi_runner import LuigiRunner
+        dir_to_use = args.config_dir if args.config_dir else "config/tasks"
+        runner = LuigiRunner(config_dir=dir_to_use)
+
+        target_ids = None
+        if args.config:
+            try:
+                cfg = ConfigParser.load_toml(args.config)
+                target_ids = [cfg.job.task_id]
+            except Exception as err:
+                logger.error(f"Error reading config '{args.config}': {err}")
+                sys.exit(1)
+
+        success = runner.run_pipeline_dag(target_task_ids=target_ids, workers=args.parallel, local_scheduler=True)
+        exit_code = 0 if success else 1
+    elif args.config:
         exit_code = run_pipeline(config_path=args.config, validate_only=args.validate, force=args.force)
     elif args.rerun_failed:
         exit_code = run_rerun_failed_pipeline(date_str=args.rerun_failed, max_workers=args.parallel, validate_only=args.validate)
