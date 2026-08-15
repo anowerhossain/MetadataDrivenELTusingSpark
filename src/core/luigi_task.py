@@ -87,7 +87,7 @@ if LUIGI_AVAILABLE:
         and executes framework BaseTask workflows natively.
         """
         config_path = luigi.Parameter()
-        all_task_map = luigi.DictParameter(default={}, hashed=True)
+        all_task_map = luigi.DictParameter(default={})
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
