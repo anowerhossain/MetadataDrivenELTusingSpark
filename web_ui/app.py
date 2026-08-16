@@ -1772,22 +1772,27 @@ def main():
         from src.helpers.luigi_runner import LuigiRunner
         from web_ui.components.dag_canvas import render_interactive_vis_dag
 
+        from src.core.job_pipeline import JobPipelineParser
+
         JOBS_DIR = os.path.join("config", "jobs")
         os.makedirs(JOBS_DIR, exist_ok=True)
         job_files = sorted(glob.glob(os.path.join(JOBS_DIR, "*.toml")))
 
-        try:
-            runner = LuigiRunner(config_dir=CONFIG_DIR, jobs_dir=JOBS_DIR)
-        except TypeError:
-            runner = LuigiRunner(config_dir=CONFIG_DIR)
+        runner = LuigiRunner(config_dir=CONFIG_DIR)
 
-        if job_files:
-            job_opts = ["All Tasks Catalog (config/tasks)"] + [os.path.basename(f) for f in job_files]
-            sel_job_opt = st.selectbox("💼 Select Composite Enterprise Job Pipeline (config/jobs/):", job_opts, key="sel_job_pipeline_opt")
-            if sel_job_opt != "All Tasks Catalog (config/tasks)":
-                sel_job_path = os.path.join(JOBS_DIR, sel_job_opt)
-                if hasattr(runner, "load_job_pipeline"):
-                    runner.load_job_pipeline(sel_job_path)
+        if not job_files:
+            st.warning("⚠️ No composite Job pipelines found in `config/jobs/`. Showing all raw tasks in `config/tasks/`.")
+        else:
+            job_opts = [os.path.basename(f) for f in job_files]
+            sel_job_opt = st.selectbox("💼 Select Enterprise Job Pipeline (config/jobs/):", job_opts, key="sel_job_pipeline_opt")
+            sel_job_path = os.path.join(JOBS_DIR, sel_job_opt)
+            try:
+                job_cfg = JobPipelineParser.load_job_toml(sel_job_path)
+                valid_ids = {t.task_id for t in job_cfg.tasks}
+                # Strictly isolate runner.config_map to ONLY tasks present in this Job TOML
+                runner.config_map = {tid: cfg for tid, cfg in runner.config_map.items() if tid in valid_ids}
+            except Exception as err:
+                st.error(f"Error parsing job pipeline '{sel_job_opt}': {err}")
 
         st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
         st.caption("Visual DAG canvas (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Engine) with dynamic directional flows, zoom controls, and fit-to-screen buttons.")
@@ -1805,21 +1810,15 @@ def main():
             btn_luigi = st.button("🚀 Launch Luigi Pipeline DAG Execution", type="primary", use_container_width=True, key="btn_run_luigi")
 
         if btn_luigi:
-            cmd = [sys.executable, "main.py", "--use-luigi", "--config-dir", CONFIG_DIR, "--parallel", str(workers)]
+            if 'sel_job_path' in locals() and sel_job_path and os.path.exists(sel_job_path):
+                cmd = [sys.executable, "main.py", "--use-luigi", "--job", sel_job_path, "--parallel", str(workers)]
+            else:
+                cmd = [sys.executable, "main.py", "--use-luigi", "--config-dir", CONFIG_DIR, "--parallel", str(workers)]
             log_text = f"Running command: {' '.join(cmd)}\n\n"
             log_box = st.empty()
             for line in run_command_stream(cmd):
                 log_text += line
                 log_box.code(log_text, language="text")
-
-        st.divider()
-        ex1, ex2 = st.columns(2)
-        with ex1:
-            with st.expander("🔍 View Exportable Mermaid.js Code"):
-                st.code(runner.build_mermaid_dag(), language="mermaid")
-        with ex2:
-            with st.expander("📜 View ASCII Text Task Summary"):
-                st.text(runner.generate_ascii_dag_summary())
 
     # -------------------------------------------------------------------------
     # PAGE 2: Task Builder

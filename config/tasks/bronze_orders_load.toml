@@ -1,7 +1,7 @@
 # Bronze Orders Load TOML Task Configuration
 [task]
 task_id = "bronze_orders_load"
-task_name = "Bronze Raw Orders Ingestion"
+task_name = "Bronze Raw Order Ingestion"
 type = "table_load"
 enabled = true
 depends_on = []

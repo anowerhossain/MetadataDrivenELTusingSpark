@@ -30,13 +30,17 @@ class LuigiRunner:
     constructing task dependency graphs, and invoking Luigi orchestration builds.
     """
 
-    def __init__(self, config_dir: str = "config/tasks", jobs_dir: str = "config/jobs"):
+    def __init__(self, config_dir: str = "config/tasks", jobs_dir: str = "config/jobs", job_file: Optional[str] = None, **kwargs):
         self.config_dir = config_dir
         self.jobs_dir = jobs_dir
         self.task_map: Dict[str, str] = {}  # task_id -> file_path
         self.config_map: Dict[str, JobConfig] = {}  # task_id -> JobConfig
         self.active_job: Optional[JobPipelineConfig] = None
-        self._discover_tasks()
+
+        if job_file and os.path.exists(job_file):
+            self.load_job_pipeline(job_file)
+        else:
+            self._discover_tasks()
 
     def _discover_tasks(self):
         """Discovers all .toml task configurations in config_dir and builds task_id map."""
@@ -59,18 +63,56 @@ class LuigiRunner:
                 logger.warning(f"[LuigiRunner] Could not parse task file '{filepath}': {err}")
 
     def load_job_pipeline(self, job_filepath: str):
-        """Loads a composite Job pipeline configuration from config/jobs/ and builds task mapping."""
+        """Loads a composite Job pipeline configuration from config/jobs/ and builds task mapping for that specific job."""
         try:
+            # First discover all task files in config_dir
+            all_discovered: Dict[str, str] = {}
+            if os.path.exists(self.config_dir):
+                for fp in glob.glob(os.path.join(self.config_dir, "*.toml")):
+                    try:
+                        cfg_tmp = ConfigParser.load_toml(fp)
+                        all_discovered[cfg_tmp.job.task_id] = fp
+                    except Exception:
+                        pass
+
             job_cfg = JobPipelineParser.load_job_toml(job_filepath)
             self.active_job = job_cfg
+            self.task_map = {}
+            self.config_map = {}
             logger.info(f"[LuigiRunner] Loaded composite Job Pipeline '{job_cfg.job_id}' ({job_cfg.job_name}) with {len(job_cfg.tasks)} tasks.")
 
-            # Override task map dependencies from Job mapping
+            # Load ONLY tasks defined in this Job pipeline mapping
             for t_map in job_cfg.tasks:
+                target_file = None
+                # Resolution candidate 1: direct task_file path
                 if t_map.task_file and os.path.exists(t_map.task_file):
-                    self.task_map[t_map.task_id] = t_map.task_file
-                    cfg = ConfigParser.load_toml(t_map.task_file)
+                    target_file = t_map.task_file
+                # Resolution candidate 2: task_file relative to config_dir
+                elif t_map.task_file and os.path.exists(os.path.join(self.config_dir, os.path.basename(t_map.task_file))):
+                    target_file = os.path.join(self.config_dir, os.path.basename(t_map.task_file))
+                # Resolution candidate 3: task_id.toml in config_dir
+                elif os.path.exists(os.path.join(self.config_dir, f"{t_map.task_id}.toml")):
+                    target_file = os.path.join(self.config_dir, f"{t_map.task_id}.toml")
+                # Resolution candidate 4: discovered task map
+                elif t_map.task_id in all_discovered:
+                    target_file = all_discovered[t_map.task_id]
+
+                if target_file and os.path.exists(target_file):
+                    self.task_map[t_map.task_id] = target_file
+                    cfg = ConfigParser.load_toml(target_file)
+
+                    # Override task depends_on from Job definition if explicitly defined in Job TOML
+                    if t_map.depends_on:
+                        cfg_dict = dict(cfg.raw_config)
+                        task_sec = dict(cfg_dict.get("task", {}) or cfg_dict.get("job", {}))
+                        task_sec["depends_on"] = t_map.depends_on
+                        cfg_dict["task"] = task_sec
+                        cfg = JobConfig.from_dict(cfg_dict)
+
                     self.config_map[t_map.task_id] = cfg
+                    logger.debug(f"[LuigiRunner] Successfully mapped job task '{t_map.task_id}' -> {target_file}")
+                else:
+                    logger.warning(f"[LuigiRunner] Task file for task_id '{t_map.task_id}' could not be resolved from path '{t_map.task_file}'.")
         except Exception as err:
             logger.error(f"[LuigiRunner] Failed to load Job pipeline '{job_filepath}': {err}")
             raise err
