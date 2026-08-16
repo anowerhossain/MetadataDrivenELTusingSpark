@@ -1533,6 +1533,7 @@ def main():
     all_nav_options = [
         ("Dashboard & Task Executor", "dash", "VIEW_CATALOG"),
         ("Luigi Workflow Orchestrator (DAG)", "luigi", "VIEW_CATALOG"),
+        ("💼 Job Builder (config/jobs/)", "job_builder", "CREATE_TASK"),
         ("Task Builder", "builder", "CREATE_TASK"),
         ("TOML Task Editor & Configurator", "editor", "EDIT_TASK"),
         ("Failure Recovery Center", "failure", "EXECUTE_TASK"),
@@ -1819,6 +1820,15 @@ def main():
             for line in run_command_stream(cmd):
                 log_text += line
                 log_box.code(log_text, language="text")
+
+    # -------------------------------------------------------------------------
+    # PAGE 1.8: Job Builder (config/jobs/)
+    # -------------------------------------------------------------------------
+    elif page == "💼 Job Builder (config/jobs/)":
+        st.header("💼 Drag-and-Drop Visual Job Builder & Configurator")
+        st.markdown("Create and manage higher-level business pipelines (`config/jobs/*.toml`) with interactive visual card flowcharts.")
+        from web_ui.components.drag_job_builder import render_drag_job_builder
+        render_drag_job_builder()
 
     # -------------------------------------------------------------------------
     # PAGE 2: Task Builder

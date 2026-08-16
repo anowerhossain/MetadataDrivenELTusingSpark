@@ -1,0 +1,19 @@
+# =============================================================================
+# Production Enterprise Job Pipeline TOML Configuration
+# Metadata-Driven PySpark & Iceberg Framework with Spotify Luigi Orchestration
+# =============================================================================
+[job]
+job_id = "test_finance_job"
+job_name = "Test Finance Pipeline"
+description = "Test GL data flow"
+enabled = true
+
+[[job.tasks]]
+task_id = "bronze_orders_load"
+task_file = "config/tasks/bronze_orders_load.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "silver_orders_clean"
+task_file = "config/tasks/silver_orders_clean.toml"
+depends_on = ["bronze_orders_load"]

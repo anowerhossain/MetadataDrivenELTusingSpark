@@ -1,0 +1,24 @@
+# =============================================================================
+# Production Enterprise Job Pipeline TOML Configuration
+# Metadata-Driven PySpark & Iceberg Framework with Spotify Luigi Orchestration
+# =============================================================================
+[job]
+job_id = "custom_sales_pipeline2"
+job_name = "Custom Enterprise Sales Pipeline"
+description = "Multi-tier pipeline configured via Drag-and-Drop Visual Canvas."
+enabled = true
+
+[[job.tasks]]
+task_id = "bronze_orders_load"
+task_file = "config/tasks/bronze_orders_load.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "customer"
+task_file = "config/tasks/customer_merge.toml"
+depends_on = ["bronze_orders_load"]
+
+[[job.tasks]]
+task_id = "customer_inc_loa"
+task_file = "config/tasks/customer_incremental.toml"
+depends_on = ["customer"]

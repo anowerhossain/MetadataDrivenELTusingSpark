@@ -1,0 +1,16 @@
+# Higher-Level Enterprise Job Pipeline TOML Configuration
+[job]
+job_id = "customer_sales_pipeline"
+job_name = "End-to-End Customer Sales Ingestion & Analytics Job"
+description = "Orchestrates Bronze ingestion, Silver transformation, and Gold Qlik report reload in sequence."
+enabled = true
+
+[[job.tasks]]
+task_id = "bronze_orders_load"
+task_file = "config/tasks/bronze_orders_load.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "silver_orders_clean"
+task_file = "config/tasks/silver_orders_clean.toml"
+depends_on = ["bronze_orders_load"]

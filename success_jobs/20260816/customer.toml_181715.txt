@@ -1,0 +1,12 @@
+SUCCESS RECORD TIMESTAMP: 2026-08-16T18:17:15.030850+00:00
+JOB ID                 : customer_load
+CONFIG PATH            : C:\Brac Bank\zipped\zipped\Extraction_v2.1\config\tasks\customer.toml
+EXECUTION RUN ID       : run_85e65e573e7a
+STATUS                 : SUCCESS
+ROWS READ              : 0
+ROWS WRITTEN           : 0
+DURATION (SECONDS)     : 0.00
+--------------------------------------------------------------------------------
+PIPELINE SUMMARY:
+ETL Job 'customer_load' completed successfully without errors.
+--------------------------------------------------------------------------------
