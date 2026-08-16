@@ -1775,31 +1775,36 @@ def main():
         runner = LuigiRunner(config_dir=CONFIG_DIR)
 
         st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
-        st.caption("Color-coded Medallion stages (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Refresh) with dynamic Bezier directional flows, status badges, and zoom/pan controls.")
-        render_interactive_vis_dag(runner.config_map, height=420)
-
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            st.subheader("⚡ Luigi Pipeline Execution Engine")
-            workers = st.slider("Parallel Worker Threads", min_value=1, max_value=16, value=4, key="luigi_workers_slider")
-            local_sched = st.checkbox("Use Local Scheduler", value=True, key="luigi_local_sched_chk")
-
-            if st.button("🚀 Launch Luigi Pipeline DAG Execution", type="primary", use_container_width=True, key="btn_run_luigi"):
-                cmd = [sys.executable, "main.py", "--use-luigi", "--config-dir", CONFIG_DIR, "--parallel", str(workers)]
-                log_text = f"Running command: {' '.join(cmd)}\n\n"
-                log_box = st.empty()
-                for line in run_command_stream(cmd):
-                    log_text += line
-                    log_box.code(log_text, language="text")
-
-        with c2:
-            st.subheader("🔍 Exportable Mermaid.js Syntax")
-            mermaid_syntax = runner.build_mermaid_dag()
-            st.code(mermaid_syntax, language="mermaid")
+        st.caption("Visual DAG canvas (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Engine) with dynamic directional flows, zoom controls, and fit-to-screen buttons.")
+        render_interactive_vis_dag(runner.config_map, height=480)
 
         st.divider()
-        st.subheader("📜 ASCII Task Dependency Graph Summary")
-        st.text(runner.generate_ascii_dag_summary())
+        st.subheader("⚡ Luigi Pipeline Execution Engine")
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            workers = st.slider("Parallel Worker Threads", min_value=1, max_value=16, value=4, key="luigi_workers_slider")
+            local_sched = st.checkbox("Use Local Scheduler", value=True, key="luigi_local_sched_chk")
+        with c2:
+            st.write("")
+            st.write("")
+            btn_luigi = st.button("🚀 Launch Luigi Pipeline DAG Execution", type="primary", use_container_width=True, key="btn_run_luigi")
+
+        if btn_luigi:
+            cmd = [sys.executable, "main.py", "--use-luigi", "--config-dir", CONFIG_DIR, "--parallel", str(workers)]
+            log_text = f"Running command: {' '.join(cmd)}\n\n"
+            log_box = st.empty()
+            for line in run_command_stream(cmd):
+                log_text += line
+                log_box.code(log_text, language="text")
+
+        st.divider()
+        ex1, ex2 = st.columns(2)
+        with ex1:
+            with st.expander("🔍 View Exportable Mermaid.js Code"):
+                st.code(runner.build_mermaid_dag(), language="mermaid")
+        with ex2:
+            with st.expander("📜 View ASCII Text Task Summary"):
+                st.text(runner.generate_ascii_dag_summary())
 
     # -------------------------------------------------------------------------
     # PAGE 2: Task Builder
