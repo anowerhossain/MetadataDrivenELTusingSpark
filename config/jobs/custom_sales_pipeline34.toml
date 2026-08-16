@@ -3,9 +3,9 @@
 # Metadata-Driven PySpark & Iceberg Framework with Spotify Luigi Orchestration
 # =============================================================================
 [job]
-job_id = "custom_sales_pipeline2"
+job_id = "custom_sales_pipeline34"
 job_name = "Custom Enterprise Sales Pipeline"
-description = "Multi-tier pipelines configured via Drag-and-Drop Visual Canvas."
+description = "Pipeline built via Visual Flow Builder."
 enabled = true
 
 [[job.tasks]]
@@ -21,4 +21,4 @@ depends_on = ["bronze_orders_load"]
 [[job.tasks]]
 task_id = "customer_inc_loa"
 task_file = "config/tasks/customer_incremental.toml"
-depends_on = ["customer"]
+depends_on = ["bronze_orders_load"]

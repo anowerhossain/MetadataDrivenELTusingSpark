@@ -1781,6 +1781,7 @@ def main():
 
         runner = LuigiRunner(config_dir=CONFIG_DIR)
 
+        depends_on_override = {}  # populated below if a job TOML is selected
         if not job_files:
             st.warning("⚠️ No composite Job pipelines found in `config/jobs/`. Showing all raw tasks in `config/tasks/`.")
         else:
@@ -1790,14 +1791,22 @@ def main():
             try:
                 job_cfg = JobPipelineParser.load_job_toml(sel_job_path)
                 valid_ids = {t.task_id for t in job_cfg.tasks}
-                # Strictly isolate runner.config_map to ONLY tasks present in this Job TOML
+                # Filter runner.config_map to only tasks in this Job
                 runner.config_map = {tid: cfg for tid, cfg in runner.config_map.items() if tid in valid_ids}
+
+                # ── KEY FIX: build override dict from job TOML depends_on ──
+                # Cannot mutate frozen dataclasses, so pass overrides to canvas instead
+                depends_on_override = {
+                    task_entry.task_id: (task_entry.depends_on or [])
+                    for task_entry in job_cfg.tasks
+                }
+
             except Exception as err:
                 st.error(f"Error parsing job pipeline '{sel_job_opt}': {err}")
 
         st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
         st.caption("Visual DAG canvas (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Engine) with dynamic directional flows, zoom controls, and fit-to-screen buttons.")
-        render_interactive_vis_dag(runner.config_map, height=480)
+        render_interactive_vis_dag(runner.config_map, height=480, depends_on_override=depends_on_override)
 
         st.divider()
         st.subheader("⚡ Luigi Pipeline Execution Engine")

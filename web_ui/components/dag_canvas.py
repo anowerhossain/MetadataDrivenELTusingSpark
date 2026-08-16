@@ -82,12 +82,20 @@ def get_node_style_and_tier(task_id: str, config: JobConfig) -> Dict[str, Any]:
     }
 
 
-def render_interactive_vis_dag(config_map: Dict[str, JobConfig], height: int = 480):
+def render_interactive_vis_dag(
+    config_map: Dict[str, JobConfig],
+    height: int = 480,
+    depends_on_override: Dict[str, List[str]] = None,
+):
     """
     Renders high-end Vis.js HTML5 Interactive DAG Network Component in Streamlit.
+    depends_on_override: optional dict of {task_id: [parent_task_ids]} to override
+    frozen dataclass depends_on values (used when loading job TOML pipelines).
     """
     nodes: List[Dict[str, Any]] = []
     edges: List[Dict[str, Any]] = []
+    if depends_on_override is None:
+        depends_on_override = {}
 
     for task_id, config in config_map.items():
         style = get_node_style_and_tier(task_id, config)
@@ -125,7 +133,9 @@ def render_interactive_vis_dag(config_map: Dict[str, JobConfig], height: int = 4
             }
         })
 
-        for dep_id in config.job.depends_on:
+        # Use job-level override if provided, else fall back to task-level depends_on
+        effective_deps = depends_on_override.get(task_id, config.job.depends_on)
+        for dep_id in effective_deps:
             edges.append({
                 "from": dep_id,
                 "to": task_id,
