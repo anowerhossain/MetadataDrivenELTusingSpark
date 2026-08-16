@@ -1772,7 +1772,18 @@ def main():
         from src.helpers.luigi_runner import LuigiRunner
         from web_ui.components.dag_canvas import render_interactive_vis_dag
 
-        runner = LuigiRunner(config_dir=CONFIG_DIR)
+        JOBS_DIR = os.path.join("config", "jobs")
+        os.makedirs(JOBS_DIR, exist_ok=True)
+        job_files = sorted(glob.glob(os.path.join(JOBS_DIR, "*.toml")))
+
+        runner = LuigiRunner(config_dir=CONFIG_DIR, jobs_dir=JOBS_DIR)
+
+        if job_files:
+            job_opts = ["All Tasks Catalog (config/tasks)"] + [os.path.basename(f) for f in job_files]
+            sel_job_opt = st.selectbox("💼 Select Composite Enterprise Job Pipeline (config/jobs/):", job_opts, key="sel_job_pipeline_opt")
+            if sel_job_opt != "All Tasks Catalog (config/tasks)":
+                sel_job_path = os.path.join(JOBS_DIR, sel_job_opt)
+                runner.load_job_pipeline(sel_job_path)
 
         st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
         st.caption("Visual DAG canvas (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Engine) with dynamic directional flows, zoom controls, and fit-to-screen buttons.")

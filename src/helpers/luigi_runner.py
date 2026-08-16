@@ -17,6 +17,7 @@ except ImportError:
     luigi = None
 
 from src.core.config import ConfigParser, JobConfig
+from src.core.job_pipeline import JobPipelineParser, JobPipelineConfig
 from src.core.luigi_task import FrameworkLuigiTask, create_framework_task_instance
 from src.helpers.logger import setup_logger
 
@@ -25,14 +26,16 @@ logger = setup_logger("LuigiRunner")
 
 class LuigiRunner:
     """
-    Manager class for discovering TOML task configurations, constructing task dependency graphs,
-    and invoking Luigi orchestration builds.
+    Manager class for discovering TOML task and composite job configurations,
+    constructing task dependency graphs, and invoking Luigi orchestration builds.
     """
 
-    def __init__(self, config_dir: str = "config/tasks"):
+    def __init__(self, config_dir: str = "config/tasks", jobs_dir: str = "config/jobs"):
         self.config_dir = config_dir
+        self.jobs_dir = jobs_dir
         self.task_map: Dict[str, str] = {}  # task_id -> file_path
         self.config_map: Dict[str, JobConfig] = {}  # task_id -> JobConfig
+        self.active_job: Optional[JobPipelineConfig] = None
         self._discover_tasks()
 
     def _discover_tasks(self):
@@ -54,6 +57,23 @@ class LuigiRunner:
                     logger.debug(f"[LuigiRunner] Skipping disabled task '{task_id}' at {filepath}")
             except Exception as err:
                 logger.warning(f"[LuigiRunner] Could not parse task file '{filepath}': {err}")
+
+    def load_job_pipeline(self, job_filepath: str):
+        """Loads a composite Job pipeline configuration from config/jobs/ and builds task mapping."""
+        try:
+            job_cfg = JobPipelineParser.load_job_toml(job_filepath)
+            self.active_job = job_cfg
+            logger.info(f"[LuigiRunner] Loaded composite Job Pipeline '{job_cfg.job_id}' ({job_cfg.job_name}) with {len(job_cfg.tasks)} tasks.")
+
+            # Override task map dependencies from Job mapping
+            for t_map in job_cfg.tasks:
+                if t_map.task_file and os.path.exists(t_map.task_file):
+                    self.task_map[t_map.task_id] = t_map.task_file
+                    cfg = ConfigParser.load_toml(t_map.task_file)
+                    self.config_map[t_map.task_id] = cfg
+        except Exception as err:
+            logger.error(f"[LuigiRunner] Failed to load Job pipeline '{job_filepath}': {err}")
+            raise err
 
     def build_mermaid_dag(self) -> str:
         """Generates Mermaid.js syntax flowchart for visual DAG rendering in Web UI."""

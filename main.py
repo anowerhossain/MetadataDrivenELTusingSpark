@@ -389,6 +389,7 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--config", help="Path to single pipeline TOML configuration file")
     group.add_argument("--config-dir", help="Directory containing multiple TOML job configuration files for concurrent execution")
+    group.add_argument("--job", help="Path to composite Job pipeline TOML configuration file in config/jobs/")
     group.add_argument("--rerun-failed", help="Date in YYYYMMDD format to rerun failed jobs from failed_jobs/YYYYMMDD/")
     parser.add_argument("--parallel", type=int, default=4, help="Maximum number of parallel workers for batch or rerun mode (default: 4)")
     parser.add_argument(
@@ -414,7 +415,13 @@ if __name__ == "__main__":
         runner = LuigiRunner(config_dir=dir_to_use)
 
         target_ids = None
-        if args.config:
+        if args.job:
+            try:
+                runner.load_job_pipeline(args.job)
+            except Exception as err:
+                logger.error(f"Error reading composite job '{args.job}': {err}")
+                sys.exit(1)
+        elif args.config:
             try:
                 cfg = ConfigParser.load_toml(args.config)
                 target_ids = [cfg.job.task_id]
