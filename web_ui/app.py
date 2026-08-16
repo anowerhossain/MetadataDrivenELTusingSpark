@@ -1770,18 +1770,17 @@ def main():
         )
 
         from src.helpers.luigi_runner import LuigiRunner
+        from web_ui.components.dag_canvas import render_interactive_vis_dag
+
         runner = LuigiRunner(config_dir=CONFIG_DIR)
 
-        c1, c2 = st.columns([2, 1])
-        with c1:
-            st.subheader("📊 Live Graphical Task DAG Flowchart")
-            mermaid_syntax = runner.build_mermaid_dag()
-            render_mermaid_diagram(mermaid_syntax, height=350)
-            with st.expander("🔍 View Raw Mermaid.js Code"):
-                st.code(mermaid_syntax, language="mermaid")
+        st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
+        st.caption("Color-coded Medallion stages (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Refresh) with dynamic Bezier directional flows, status badges, and zoom/pan controls.")
+        render_interactive_vis_dag(runner.config_map, height=420)
 
-        with c2:
-            st.subheader("⚡ Luigi Pipeline Execution")
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            st.subheader("⚡ Luigi Pipeline Execution Engine")
             workers = st.slider("Parallel Worker Threads", min_value=1, max_value=16, value=4, key="luigi_workers_slider")
             local_sched = st.checkbox("Use Local Scheduler", value=True, key="luigi_local_sched_chk")
 
@@ -1792,6 +1791,11 @@ def main():
                 for line in run_command_stream(cmd):
                     log_text += line
                     log_box.code(log_text, language="text")
+
+        with c2:
+            st.subheader("🔍 Exportable Mermaid.js Syntax")
+            mermaid_syntax = runner.build_mermaid_dag()
+            st.code(mermaid_syntax, language="mermaid")
 
         st.divider()
         st.subheader("📜 ASCII Task Dependency Graph Summary")
