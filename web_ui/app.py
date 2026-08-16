@@ -1776,7 +1776,10 @@ def main():
         os.makedirs(JOBS_DIR, exist_ok=True)
         job_files = sorted(glob.glob(os.path.join(JOBS_DIR, "*.toml")))
 
-        runner = LuigiRunner(config_dir=CONFIG_DIR, jobs_dir=JOBS_DIR)
+        try:
+            runner = LuigiRunner(config_dir=CONFIG_DIR, jobs_dir=JOBS_DIR)
+        except TypeError:
+            runner = LuigiRunner(config_dir=CONFIG_DIR)
 
         if job_files:
             job_opts = ["All Tasks Catalog (config/tasks)"] + [os.path.basename(f) for f in job_files]
