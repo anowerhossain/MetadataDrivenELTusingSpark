@@ -1786,7 +1786,8 @@ def main():
             sel_job_opt = st.selectbox("💼 Select Composite Enterprise Job Pipeline (config/jobs/):", job_opts, key="sel_job_pipeline_opt")
             if sel_job_opt != "All Tasks Catalog (config/tasks)":
                 sel_job_path = os.path.join(JOBS_DIR, sel_job_opt)
-                runner.load_job_pipeline(sel_job_path)
+                if hasattr(runner, "load_job_pipeline"):
+                    runner.load_job_pipeline(sel_job_path)
 
         st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
         st.caption("Visual DAG canvas (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Engine) with dynamic directional flows, zoom controls, and fit-to-screen buttons.")
