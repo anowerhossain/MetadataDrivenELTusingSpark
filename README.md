@@ -19,6 +19,95 @@ Instead of writing custom PySpark scripts for every pipeline, this framework is 
 
 ---
 
+## 🕸️ How to Create a Multi-Task Pipeline DAG (Luigi Orchestration)
+
+In this framework, a **Job Pipeline (DAG)** is a combination of interconnected tasks (e.g. **Bronze Ingestion ➔ Silver Transformation ➔ Gold Analytics / Qlik Refresh**) linked dynamically using the `depends_on` metadata field. **Spotify Luigi** handles dependency resolution, concurrency, retries, and execution order.
+
+### 3-Step Guide to Create a New Pipeline DAG:
+
+#### 1️⃣ Step 1: Define the Root Task (Bronze Tier)
+Create a `.toml` file in `config/tasks/` for raw ingestion. Leave `depends_on = []` empty so it runs immediately:
+
+*File: `config/tasks/bronze_customers_load.toml`*
+```toml
+[task]
+task_id = "bronze_customers_load"
+task_name = "Bronze Raw Customers Ingestion"
+type = "table_load"
+enabled = true
+depends_on = []  # <-- Root task (no dependencies)
+
+[source]
+type = "oracle"
+connection = "oracle_prod"
+schema = "CRM"
+table = "CUSTOMERS"
+
+[load]
+type = "full"
+
+[target]
+catalog = "hive"
+database = "bronze_db"
+table = "raw_customers"
+```
+
+#### 2️⃣ Step 2: Define the Transformation Task (Silver Tier)
+Create a second `.toml` task file specifying `depends_on = ["bronze_customers_load"]`:
+
+*File: `config/tasks/silver_customers_clean.toml`*
+```toml
+[task]
+task_id = "silver_customers_clean"
+task_name = "Silver Clean Customers Transformation"
+type = "table_load"
+enabled = true
+depends_on = ["bronze_customers_load"]  # <-- Luigi waits for bronze_customers_load!
+
+[source]
+type = "postgres"
+connection = "postgres_dwh"
+schema = "bronze_db"
+table = "raw_customers"
+
+[load]
+type = "full"
+
+[target]
+catalog = "hive"
+database = "silver_db"
+table = "clean_customers"
+```
+
+#### 3️⃣ Step 3: Define the Analytics / Report Refresh Task (Gold Tier)
+Create a third `.toml` task file specifying `depends_on = ["silver_customers_clean"]`:
+
+*File: `config/tasks/gold_customer_dashboard.toml`*
+```toml
+[task]
+task_id = "gold_customer_dashboard"
+task_name = "Gold Customer Dashboard Reload"
+type = "qlik_sense"
+enabled = true
+depends_on = ["silver_customers_clean"]  # <-- Luigi waits for silver_customers_clean!
+
+[qlik_sense]
+server_url = "https://qliksense.company.com"
+app_id = "app-guid-customer-analytics"
+timeout_seconds = 600
+poll_interval_seconds = 10
+```
+
+#### 🔀 Multi-Parent Dependencies (Branching Pipelines)
+If a task requires **multiple** upstream tasks to finish first, list all task IDs in `depends_on`:
+```toml
+[task]
+task_id = "gold_executive_dashboard"
+depends_on = ["silver_customers_clean", "silver_orders_clean"]  # <-- Luigi waits for BOTH!
+```
+
+---
+
 ## 🚀 CDP Deployment Guide & Step-by-Step Instructions
 
 This section outlines how to package, deploy, and execute the framework on **Cloudera Data Platform (CDP)** (CDP Edge Node / Gateway Host / CDE Cluster).
