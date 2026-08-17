@@ -1782,30 +1782,23 @@ def main():
         os.makedirs(JOBS_DIR, exist_ok=True)
         job_files = sorted(glob.glob(os.path.join(JOBS_DIR, "*.toml")))
 
-        runner = LuigiRunner(config_dir=CONFIG_DIR)
-
-        depends_on_override = {}  # populated below if a job TOML is selected
+        depends_on_override = {}
         if not job_files:
             st.warning("⚠️ No composite Job pipelines found in `config/jobs/`. Showing all raw tasks in `config/tasks/`.")
+            runner = LuigiRunner(config_dir=CONFIG_DIR)
         else:
             job_opts = [os.path.basename(f) for f in job_files]
             sel_job_opt = st.selectbox("💼 Select Enterprise Job Pipeline (config/jobs/):", job_opts, key="sel_job_pipeline_opt")
             sel_job_path = os.path.join(JOBS_DIR, sel_job_opt)
             try:
-                job_cfg = JobPipelineParser.load_job_toml(sel_job_path)
-                valid_ids = {t.task_id for t in job_cfg.tasks}
-                # Filter runner.config_map to only tasks in this Job
-                runner.config_map = {tid: cfg for tid, cfg in runner.config_map.items() if tid in valid_ids}
-
-                # ── KEY FIX: build override dict from job TOML depends_on ──
-                # Cannot mutate frozen dataclasses, so pass overrides to canvas instead
-                depends_on_override = {
-                    task_entry.task_id: (task_entry.depends_on or [])
-                    for task_entry in job_cfg.tasks
-                }
-
+                runner = LuigiRunner(config_dir=CONFIG_DIR, jobs_dir=JOBS_DIR, job_file=sel_job_path)
+                if runner.active_job:
+                    depends_on_override = {
+                        t.task_id: (t.depends_on or []) for t in runner.active_job.tasks
+                    }
             except Exception as err:
                 st.error(f"Error parsing job pipeline '{sel_job_opt}': {err}")
+                runner = LuigiRunner(config_dir=CONFIG_DIR)
 
         st.subheader("🎨 Interactive Medallion Architecture Task DAG Canvas")
         st.caption("Visual DAG canvas (🟤 Bronze -> 🥈 Silver -> 🥇 Gold -> 🔄 Qlik Engine) with dynamic directional flows, zoom controls, and fit-to-screen buttons.")
