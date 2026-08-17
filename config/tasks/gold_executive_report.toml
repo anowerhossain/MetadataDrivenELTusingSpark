@@ -3,7 +3,7 @@
 task_id = "gold_executive_report"
 task_name = "Gold Executive Report Reload"
 type = "qlik_sense"
-enabled = true
+enabled = false
 depends_on = ["silver_orders_clean"]
 description = "Triggers Qlik Sense App reload for Executive Dashboard after Silver orders transformation completes."
 

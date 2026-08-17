@@ -13,12 +13,19 @@ import streamlit.components.v1 as components
 from src.core.config import JobConfig
 
 
+from datetime import datetime, timezone
+
+
 def get_task_execution_status(task_id: str) -> str:
-    """Checks success_jobs/ and failed_jobs/ directories to resolve recent task run status."""
-    today_date = "20260816"
+    """Checks running_jobs/, success_jobs/, and failed_jobs/ directories to resolve recent task run status."""
+    today_date = datetime.now(timezone.utc).strftime("%Y%m%d")
+    running_marker = os.path.join("running_jobs", today_date, f"{task_id}.running")
+    luigi_marker = os.path.join("success_jobs", "luigi_markers", today_date, f"{task_id}.done")
     failed_dir = os.path.join("failed_jobs", today_date)
     success_dir = os.path.join("success_jobs", today_date)
-    luigi_marker = os.path.join("success_jobs", "luigi_markers", today_date, f"{task_id}.done")
+
+    if os.path.exists(running_marker):
+        return "RUNNING"
 
     if os.path.exists(luigi_marker):
         return "SUCCESS"
@@ -64,7 +71,11 @@ def get_node_style_and_tier(task_id: str, config: JobConfig) -> Dict[str, Any]:
         icon = "🟤"
 
     status = get_task_execution_status(task_id)
-    if status == "SUCCESS":
+    if status == "RUNNING":
+        status_badge = "⏳ RUNNING..."
+        border_color = "#f59e0b"
+        bg_color = "#78350f"
+    elif status == "SUCCESS":
         status_badge = "✅ SUCCESS"
         border_color = "#22c55e"
     elif status == "FAILED":
@@ -103,7 +114,7 @@ def render_interactive_vis_dag(
         task_name = config.job.task_name
         task_type = str(config.raw_config.get("task", {}).get("type", "table_load")).upper()
 
-        label_text = f"{style['icon']} {task_id}\n{task_name}\n[{style['tier_label']}]"
+        label_text = f"{style['icon']} {task_id}\n{style['status_badge']}\n[{style['tier_label']}]"
 
         nodes.append({
             "id": task_id,

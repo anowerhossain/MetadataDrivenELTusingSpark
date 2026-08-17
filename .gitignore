@@ -25,6 +25,7 @@ credentials.toml
 # Logs & Audit Output
 *.log
 *.sqlite
+running_jobs/
 
 # Operating System Files
 .DS_Store

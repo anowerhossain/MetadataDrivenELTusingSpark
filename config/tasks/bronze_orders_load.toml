@@ -3,7 +3,7 @@
 task_id = "bronze_orders_load"
 task_name = "Bronze Raw Order Ingestion"
 type = "table_load"
-enabled = true
+enabled = false
 depends_on = []
 description = "Ingests raw order transactions from Oracle Database into Bronze Apache Iceberg catalog table."
 

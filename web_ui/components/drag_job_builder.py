@@ -376,7 +376,7 @@ def render_drag_job_builder():
 
     # ── Save ───────────────────────────────────────────────────────────────────
     st.divider()
-    if st.button("💾 Save Job Pipeline", type="primary", use_container_width=True, key="btn_save_drag_job"):
+    if st.button("Save Job Pipeline", type="primary", use_container_width=True, key="btn_save_drag_job"):
         clean_job_id = re.sub(r"[^a-zA-Z0-9_]", "_", job_id.strip().lower())
         if not clean_job_id:
             st.error("❌ Job ID is required."); return

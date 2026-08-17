@@ -3,7 +3,7 @@
 task_id = "silver_orders_clean"
 task_name = "Silver Clean Orders Transformation"
 type = "table_load"
-enabled = true
+enabled = false
 depends_on = ["bronze_orders_load"]
 description = "Cleans and deduplicates orders from Bronze table into Silver Apache Iceberg catalog table."
 

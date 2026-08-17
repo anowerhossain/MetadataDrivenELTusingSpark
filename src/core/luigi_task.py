@@ -127,26 +127,50 @@ if LUIGI_AVAILABLE:
 
         def run(self):
             """
-            Executes framework BaseTask workflow natively.
+            Executes framework BaseTask workflow natively with real-time RUNNING marker tracking.
             """
             config = self.parsed_config
             task_instance = create_framework_task_instance(config)
 
-            logger.info(f"[LuigiTask] Starting Luigi task wrapper for '{task_instance.task_id}' ({task_instance.task_name})...")
-            success = task_instance.run()
+            today_date = datetime.now(timezone.utc).strftime("%Y%m%d")
+            running_marker = os.path.join("running_jobs", today_date, f"{task_instance.task_id}.running")
+            os.makedirs(os.path.dirname(running_marker), exist_ok=True)
 
-            if success:
-                output_target = self.output()
-                os.makedirs(os.path.dirname(output_target.path), exist_ok=True)
-                with output_target.open("w") as f:
-                    f.write(f"TASK_ID={task_instance.task_id}\n")
-                    f.write(f"TASK_NAME={task_instance.task_name}\n")
-                    f.write(f"TASK_TYPE={task_instance.task_type}\n")
-                    f.write(f"STATUS=SUCCESS\n")
-                    f.write(f"COMPLETED_AT={datetime.now(timezone.utc).isoformat()}\n")
-                logger.info(f"[LuigiTask] Luigi task '{task_instance.task_id}' completed SUCCESSFULLY. Target written.")
-            else:
-                raise RuntimeError(f"Framework task '{task_instance.task_id}' execution returned FAILED status.")
+            logger.info(f"[LuigiTask] Starting Luigi task wrapper for '{task_instance.task_id}' ({task_instance.task_name})...")
+            
+            # Write RUNNING marker
+            with open(running_marker, "w", encoding="utf-8") as rf:
+                rf.write(f"TASK_ID={task_instance.task_id}\n")
+                rf.write(f"STATUS=RUNNING\n")
+                rf.write(f"STARTED_AT={datetime.now(timezone.utc).isoformat()}\n")
+
+            try:
+                success = task_instance.run()
+
+                if success:
+                    output_target = self.output()
+                    os.makedirs(os.path.dirname(output_target.path), exist_ok=True)
+                    with output_target.open("w") as f:
+                        f.write(f"TASK_ID={task_instance.task_id}\n")
+                        f.write(f"TASK_NAME={task_instance.task_name}\n")
+                        f.write(f"TASK_TYPE={task_instance.task_type}\n")
+                        f.write(f"STATUS=SUCCESS\n")
+                        f.write(f"COMPLETED_AT={datetime.now(timezone.utc).isoformat()}\n")
+                    logger.info(f"[LuigiTask] Luigi task '{task_instance.task_id}' completed SUCCESSFULLY. Target written.")
+                else:
+                    # Write failure marker
+                    failed_dir = os.path.join("failed_jobs", today_date)
+                    os.makedirs(failed_dir, exist_ok=True)
+                    failed_file = os.path.join(failed_dir, f"{task_instance.task_id}_failed.txt")
+                    with open(failed_file, "w", encoding="utf-8") as ff:
+                        ff.write(f"TASK_ID={task_instance.task_id}\nSTATUS=FAILED\nFAILED_AT={datetime.now(timezone.utc).isoformat()}\n")
+                    raise RuntimeError(f"Framework task '{task_instance.task_id}' execution returned FAILED status.")
+            finally:
+                if os.path.exists(running_marker):
+                    try:
+                        os.remove(running_marker)
+                    except Exception:
+                        pass
 else:
     class FrameworkLuigiTask:  # type: ignore
         def __init__(self, *args, **kwargs):

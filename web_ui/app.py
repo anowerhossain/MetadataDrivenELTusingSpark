@@ -2,13 +2,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-"""
-Production Streamlit Web UI Control Panel for PySpark Metadata-Driven ETL Framework.
-Enables interactive filterable task catalog with schema search, bulk status operations,
-visual column transformations ([transform.rename], [transform.cast], [transform.derived]),
-pre-filled form editing, raw TOML editing, credential validation, execution, and failure recovery.
-"""
-
 import os
 import sys
 import glob
@@ -1451,7 +1444,7 @@ def main():
         return
 
     if "current_page" not in st.session_state:
-        st.session_state.current_page = "Dashboard & Task Executor"
+        st.session_state.current_page = "Dashboard and Bulk Operation"
 
     st.markdown("""
         <style>
@@ -1500,13 +1493,20 @@ def main():
                 margin-bottom: 8px;
                 padding-left: 4px;
             }
+            /* Main Content Buttons: CENTER ALIGNED */
             .stButton > button {
                 width: 100%;
-                text-align: left !important;
-                justify-content: flex-start !important;
+                text-align: center !important;
+                justify-content: center !important;
                 border-radius: 8px;
                 font-weight: 600;
                 padding: 10px 16px;
+            }
+
+            /* Sidebar Navigation Buttons: LEFT ALIGNED */
+            [data-testid="stSidebar"] .stButton > button {
+                text-align: left !important;
+                justify-content: flex-start !important;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -1514,30 +1514,19 @@ def main():
     st.title("Metadata-Driven ETL Control Center")
     st.caption("Cloudera Data Platform (CDP) • Apache Iceberg • Multi-Database Source Management UI")
 
-    # User Account & Role Profile Badge
-    user_role = st.session_state.get("user_role", "VIEWER")
-    user_name = st.session_state.get("user_name", "User")
-    badge_color = "#8957e5" if user_role == "ADMIN" else ("#1f6feb" if user_role == "DEVELOPER" else "#238636")
-    
-    st.sidebar.markdown(f"### 👤 {user_name}")
-    st.sidebar.markdown(f"<span style='background-color:{badge_color}; color:white; padding:3px 10px; border-radius:12px; font-weight:700; font-size:12px;'>ROLE: {user_role}</span>", unsafe_allow_html=True)
-    if st.sidebar.button("🚪 Log Out", key="btn_logout", use_container_width=True):
-        st.session_state.authenticated = False
-        st.session_state.username = None
-        st.session_state.user_role = None
-        st.rerun()
-
-    st.sidebar.markdown("---")
+    # -------------------------------------------------------------------------
+    # SIDEBAR NAVIGATION (TOP)
+    # -------------------------------------------------------------------------
     st.sidebar.markdown("<div class='sidebar-nav-header'>NAVIGATION BAR</div>", unsafe_allow_html=True)
 
     all_nav_options = [
-        ("Dashboard & Task Executor", "dash", "VIEW_CATALOG"),
-        ("Luigi Workflow Orchestrator (DAG)", "luigi", "VIEW_CATALOG"),
-        ("💼 Job Builder (config/jobs/)", "job_builder", "CREATE_TASK"),
+        ("Dashboard and Bulk Operation", "dash", "VIEW_CATALOG"),
         ("Task Builder", "builder", "CREATE_TASK"),
-        ("TOML Task Editor & Configurator", "editor", "EDIT_TASK"),
-        ("Failure Recovery Center", "failure", "EXECUTE_TASK"),
-        ("User & Access Control", "users", "MANAGE_USERS")
+        ("Task Editor", "editor", "EDIT_TASK"),
+        ("Job Builder", "luigi", "VIEW_CATALOG"),
+        ("Job Editor", "job_builder", "CREATE_TASK"),
+        ("Failure Recovery", "failure", "EXECUTE_TASK"),
+        ("Access Control", "users", "MANAGE_USERS")
     ]
     nav_options = [(lbl, key) for lbl, key, perm in all_nav_options if has_permission(perm)]
 
@@ -1548,6 +1537,25 @@ def main():
             st.session_state.current_page = label
             st.rerun()
 
+    # -------------------------------------------------------------------------
+    # SIDEBAR USER PROFILE & LOGOUT (BOTTOM)
+    # -------------------------------------------------------------------------
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("<div class='sidebar-nav-header'>ACCOUNT & PROFILE</div>", unsafe_allow_html=True)
+
+    user_role = st.session_state.get("user_role", "VIEWER")
+    user_name = st.session_state.get("user_name", "User")
+    badge_color = "#8957e5" if user_role == "ADMIN" else ("#1f6feb" if user_role == "DEVELOPER" else "#238636")
+    
+    st.sidebar.markdown(f"**{user_name}**")
+    st.sidebar.markdown(f"<span style='background-color:{badge_color}; color:white; padding:3px 10px; border-radius:12px; font-weight:700; font-size:11px;'>ROLE: {user_role}</span>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
+    if st.sidebar.button("Log Out", key="btn_logout", use_container_width=True):
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.session_state.user_role = None
+        st.rerun()
+
     page = st.session_state.current_page
 
     os.makedirs(CONFIG_DIR, exist_ok=True)
@@ -1556,7 +1564,7 @@ def main():
     # -------------------------------------------------------------------------
     # PAGE 1: Dashboard & Task Executor
     # -------------------------------------------------------------------------
-    if page == "Dashboard & Task Executor":
+    if page in ["Dashboard and Bulk Operation", "Dashboard & Task Executor"]:
         st.header("📊 ETL Task Execution & Catalog Dashboard")
 
         catalog_data = build_job_catalog(toml_files)
@@ -1763,7 +1771,7 @@ def main():
     # -------------------------------------------------------------------------
     # PAGE 1.5: Luigi Workflow Orchestrator (DAG)
     # -------------------------------------------------------------------------
-    elif page == "Luigi Workflow Orchestrator (DAG)":
+    elif page in ["Job Builder", "Luigi Workflow Orchestrator (DAG)"]:
         st.header("🕸️ Spotify Luigi Workflow Orchestrator & Visual DAG Tree")
         st.markdown(
             "Inspect task dependency graphs (**Bronze → Silver → Gold**), resolve workflow order, "
@@ -1815,7 +1823,7 @@ def main():
         with c2:
             st.write("")
             st.write("")
-            btn_luigi = st.button("🚀 Launch Luigi Pipeline DAG Execution", type="primary", use_container_width=True, key="btn_run_luigi")
+            btn_luigi = st.button("Launch Luigi Pipeline DAG Execution", type="primary", use_container_width=True, key="btn_run_luigi")
 
         if btn_luigi:
             if 'sel_job_path' in locals() and sel_job_path and os.path.exists(sel_job_path):
@@ -1829,10 +1837,8 @@ def main():
                 log_box.code(log_text, language="text")
 
     # -------------------------------------------------------------------------
-    # PAGE 1.8: Job Builder (config/jobs/)
-    # -------------------------------------------------------------------------
-    elif page == "💼 Job Builder (config/jobs/)":
-        st.header("💼 Drag-and-Drop Visual Job Builder & Configurator")
+    elif page in ["Job Editor", "Job Builder (config/jobs/)", "💼 Job Builder (config/jobs/)"]:
+        st.header("Visual Job Builder & Configurator")
         st.markdown("Create and manage higher-level business pipelines (`config/jobs/*.toml`) with interactive visual card flowcharts.")
         from web_ui.components.drag_job_builder import render_drag_job_builder
         render_drag_job_builder()
@@ -1846,9 +1852,9 @@ def main():
         render_visual_form(defaults={}, is_editing=False)
 
     # -------------------------------------------------------------------------
-    # PAGE 3: TOML Task Editor & Configurator (Visual Form + Code Editor)
+    # PAGE 3: Task Editor (Visual Form + Code Editor)
     # -------------------------------------------------------------------------
-    elif page == "TOML Task Editor & Configurator":
+    elif page in ["Task Editor", "TOML Task Editor & Configurator"]:
         st.header("✏️ Edit Existing TOML Task Configuration")
         st.markdown("Select an existing job file to edit via **Visual Form Builder (Guided)** or **Raw TOML Code Editor**.")
 
@@ -1915,11 +1921,11 @@ def main():
     # -------------------------------------------------------------------------
     # PAGE 4: Execution Audit & Failure Recovery Center
     # -------------------------------------------------------------------------
-    elif page == "Failure Recovery Center":
-        st.header("🚨 Execution Audit & Failure Recovery Center")
+    elif page in ["Failure Recovery", "Failure Recovery Center"]:
+        st.header("Execution Audit & Failure Recovery")
         st.markdown("Inspect job success audit markers (`success_jobs/YYYYMMDD/`), review failed job logs (`failed_jobs/YYYYMMDD/`), and trigger one-click reruns.")
 
-        tab_fail, tab_success = st.tabs(["🚨 Failed Jobs Markers", "✅ Success Jobs Markers"])
+        tab_fail, tab_success = st.tabs(["Failed Jobs Markers", "Success Jobs Markers"])
 
         with tab_fail:
             if not os.path.exists(FAILED_DIR):
@@ -1938,7 +1944,7 @@ def main():
                     fc1, fc2 = st.columns([1, 1])
                     with fc1:
                         rerun_workers = st.slider("Rerun Parallel Workers:", min_value=1, max_value=16, value=4, key="rerun_workers")
-                        btn_rerun = st.button(f"🔥 One-Click Rerun Failed Jobs for {selected_date}", type="primary")
+                        btn_rerun = st.button(f"One-Click Rerun Failed Jobs for {selected_date}", type="primary")
 
                     if marker_files:
                         for mf in marker_files:
@@ -1973,6 +1979,23 @@ def main():
                             with st.expander(f"✅ {os.path.basename(smf)}"):
                                 with open(smf, "r", encoding="utf-8") as f:
                                     st.code(f.read(), language="text")
+
+    # -------------------------------------------------------------------------
+    # PAGE 5: Access Control (RBAC System)
+    # -------------------------------------------------------------------------
+    elif page in ["Access Control", "User & Access Control"]:
+        st.header("User & Access Control (RBAC)")
+        st.markdown("Manage user roles, permissions, and security access policies for the ETL framework.")
+        user_rows = []
+        for uname, udata in USERS_DB.items():
+            user_rows.append({
+                "Username": uname,
+                "Full Name": udata["name"],
+                "Role": udata["role"],
+                "Permissions": ", ".join(ROLE_PERMISSIONS.get(udata["role"], []))
+            })
+        if pd is not None:
+            st.dataframe(pd.DataFrame(user_rows), use_container_width=True)
 
 
 if __name__ == "__main__":
