@@ -86,6 +86,7 @@ def render_interactive_vis_dag(
     config_map: Dict[str, JobConfig],
     height: int = 480,
     depends_on_override: Dict[str, List[str]] = None,
+    **kwargs
 ):
     """
     Renders high-end Vis.js HTML5 Interactive DAG Network Component in Streamlit.
