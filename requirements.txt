@@ -1,52 +1,87 @@
 # ============================================================================
 # Enterprise PySpark & Apache Iceberg Framework - Python Requirements
-# Cloudera Data Platform (CDP) Edge Node & Gateway Host Deployment
+# Cloudera Data Platform (CDP) On-Prem Edge Node & Gateway Host Deployment
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-# 1. TOML Configuration Parser (Python < 3.11 Support)
+# 1. TOML Configuration Parser
+#    - tomllib: Built-in for Python >= 3.11
+#    - tomli:   Backport for Python < 3.11 (required for CDP Python 3.8/3.9)
+#    - toml:    Legacy fallback (write support for Task Builder save operations)
 # ----------------------------------------------------------------------------
 tomli>=2.0.1; python_version < '3.11'
 toml>=0.10.2
 
 # ----------------------------------------------------------------------------
 # 2. PySpark Engine & Timezone Utilities
-# (Note: PySpark runtime is provided by CDP Spark parcel; required for local dev & pre-flight checks)
+#    NOTE: On CDP clusters, PySpark is provided by the CDH Spark parcel.
+#    Install here only for local development, CI/CD, and --validate pre-flight checks.
 # ----------------------------------------------------------------------------
 pyspark>=3.2.0
 pytz>=2023.3
 
 # ----------------------------------------------------------------------------
-# 3. Database Connectors & SFTP Drivers (For python main.py --validate checks)
+# 3. Spotify Luigi - Orchestration Engine
+#    Used by: src/core/luigi_task.py, src/helpers/luigi_runner.py
+#    Handles: task dependency graph resolution, parallel execution, retries
 # ----------------------------------------------------------------------------
-oracledb>=1.4.0         # Oracle Database Native Python Driver
-pymysql>=1.1.0          # MySQL Database Driver
-psycopg2-binary>=2.9.9  # PostgreSQL Database Driver
-pymssql>=2.2.8          # Microsoft SQL Server Driver
-paramiko>=3.4.0         # SFTP Protocol & Remote File Discovery Driver
+luigi>=3.4.0
 
 # ----------------------------------------------------------------------------
-# 4. Data File & Excel Feed Processing
+# 4. Database Connectors & SFTP Drivers
+#    Used by: src/connectors/*.py and python main.py --validate pre-flight checks
 # ----------------------------------------------------------------------------
-pandas>=1.5.3           # Tabular Data Processing & Catalog Displays
-openpyxl>=3.1.2         # Microsoft Excel (.xlsx/.xls) Parser for SFTP Ingestion
+oracledb>=1.4.0          # Oracle Database Native Python Driver (cx_Oracle replacement)
+pymysql>=1.1.0           # MySQL Database Driver
+psycopg2-binary>=2.9.9   # PostgreSQL Database Driver (binary = no gcc required)
+pymssql>=2.2.8           # Microsoft SQL Server Driver
+paramiko>=3.4.0          # SFTP Protocol & SSH2 Remote File Discovery Driver
 
 # ----------------------------------------------------------------------------
-# 5. REST API Transport (Qlik Replicate, Qlik Sense QRS, Qlik NPrinting APIs)
+# 5. Data File & Excel Feed Processing
+#    Used by: src/connectors/sftp.py (Excel file ingestion from SFTP feeds)
+# ----------------------------------------------------------------------------
+pandas>=1.5.3            # Tabular Data Processing & Catalog Displays
+openpyxl>=3.1.2          # Microsoft Excel (.xlsx/.xls) Parser for SFTP Ingestion
+
+# ----------------------------------------------------------------------------
+# 6. REST API Transport
+#    Used by: src/helpers/qlik_replicate.py, qlik_sense.py, qlik_nprinting.py
 # ----------------------------------------------------------------------------
 requests>=2.31.0
 urllib3>=2.0.0
 
 # ----------------------------------------------------------------------------
-# 6. Streamlit Web UI Control Panel (web_ui/app.py) & RBAC
+# 7. Streamlit Web UI Control Panel
+#    Used by: web_ui/app.py, web_ui/components/*.py
 # ----------------------------------------------------------------------------
 streamlit>=1.30.0
 
 # ----------------------------------------------------------------------------
-# 7. Enterprise CDP Cluster Installation Note
+# 8. Cryptography (Paramiko & Kerberos SSH dependency on CDP)
+#    Transitive dependency of paramiko for key-based SSH/SFTP authentication
 # ----------------------------------------------------------------------------
-# To install on CDP Edge Node Python virtual environment:
+cryptography>=41.0.0
+
+# ============================================================================
+# CDP EDGE NODE DEPLOYMENT
+# ============================================================================
+# ONLINE deployment (requires internet access on edge node):
 #   python3 -m venv /opt/cloudera/venv_etl
 #   source /opt/cloudera/venv_etl/bin/activate
 #   pip install --upgrade pip
 #   pip install -r requirements.txt
+#
+# OFFLINE / AIR-GAPPED deployment (no internet on edge node):
+#   On an internet-connected machine (with Linux target wheels):
+#   pip download --only-binary=:all: \
+#       --platform manylinux2014_x86_64 \
+#       --python-version 311 \
+#       --implementation cp \
+#       --abi cp311 \
+#       -d ./offline_packages \
+#       -r requirements.txt
+#
+#   Copy ./offline_packages/ to CDP Edge Node via SCP/SFTP, then run:
+#   pip install --no-index --find-links=/tmp/offline_packages -r requirements.txt
+# ============================================================================
