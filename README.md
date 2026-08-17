@@ -143,9 +143,9 @@ depends_on = ["silver_orders_clean"]
 
 ---
 
-## 🚀 CDP Deployment Guide & Step-by-Step Instructions
+## 🚀 CDP On-Prem Enterprise Deployment Guide
 
-This section outlines how to package, deploy, and execute the framework on **Cloudera Data Platform (CDP)** (CDP Edge Node / Gateway Host / CDE Cluster).
+This section outlines how to package, deploy, and execute the framework on an **On-Prem Cloudera Data Platform (CDP)** environment (CDP Edge Node / Gateway Host / CDE Cluster).
 
 ### 📋 1. File Deployment Manifest (CDP Edge Node)
 
@@ -169,20 +169,50 @@ When copying the project to a CDP Gateway Host / Edge Node (e.g. `/opt/cloudera/
 
 ---
 
-### 🔑 2. CDP Deployment & Execution Commands
+### 🔑 2. CDP On-Prem Step-by-Step Deployment Guide
 
-#### Step A: Authenticate Kerberos (CDP Secured Cluster)
+#### Step A: Create Python Virtual Environment on CDP Edge Node
 ```bash
-kinit -kt /etc/security/keytabs/etluser.keytab etluser@REALM.COMPANY.COM
+# Create dedicated virtual environment on CDP Gateway Host / Edge Node
+python3 -m venv /opt/cloudera/venv_etl
+source /opt/cloudera/venv_etl/bin/activate
+pip install --upgrade pip
 ```
 
-#### Step B: Install Python Dependencies on Edge Node
+#### Step B: Install Python Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-#### Step C: Initialize Apache Iceberg Audit & Watermark Tables
-Run the SQL DDL scripts using Spark SQL or Beeline to create metastore tables (`etl_audit`, `etl_watermark`):
+> 🔒 **Air-Gapped CDP Cluster Note** (If CDP Edge Node has **no internet access**):
+> 1. On an internet-connected machine: `pip download -r requirements.txt -d ./wheels/`
+> 2. Copy `./wheels/` folder to CDP Edge Node and install offline:
+>    ```bash
+>    pip install --no-index --find-links=./wheels/ -r requirements.txt
+>    ```
+
+#### Step C: Copy RDBMS JDBC Driver JARs & Apache Iceberg Runtime
+Copy source database JDBC drivers to a shared directory on the CDP Edge Node (e.g., `/opt/cloudera/jars/`):
+- **Oracle Database**: `ojdbc8.jar`
+- **Microsoft SQL Server**: `mssql-jdbc-9.4.0.jre8.jar`
+- **PostgreSQL**: `postgresql-42.3.3.jar`
+- **MySQL**: `mysql-connector-java-8.0.28.jar`
+
+*Apache Iceberg Runtime Parcel Path on CDP*:
+`/opt/cloudera/parcels/CDH/lib/iceberg/iceberg-spark-runtime-3.2_2.12.jar`
+
+#### Step D: Authenticate Kerberos Security (CDP Enterprise)
+Run Kerberos ticket initialization on the edge node before running jobs:
+```bash
+# 1. Obtain Kerberos ticket via keytab
+kinit -kt /etc/security/keytabs/etl_svc_user.keytab etl_svc_user@YOUR_COMPANY_REALM.COM
+
+# 2. Verify Kerberos ticket validity
+klist
+```
+
+#### Step E: Initialize Apache Iceberg Audit & Watermark Tables
+Run SQL DDL scripts via Spark SQL or Beeline to initialize metastore tables (`etl_audit`, `etl_watermark`, `etl_users`):
 ```bash
 spark-sql -f sql/01_create_audit_tables_ddl.sql
 spark-sql -f sql/02_create_watermark_tables_ddl.sql
@@ -190,13 +220,13 @@ spark-sql -f sql/03_create_audit_tables_ddl.sql
 spark-sql -f sql/04_create_rbac_tables_ddl.sql
 ```
 
-#### Step D: Pre-Flight Connection Check (`--validate`)
-Validate source database/SFTP connectivity and credentials without starting Spark:
+#### Step F: Fast Connection Pre-Flight Check (`--validate`)
+Validate source database/SFTP connectivity and credentials without submitting YARN jobs:
 ```bash
 python main.py --validate --config config/tasks/customer.toml
 ```
 
-#### Step E: Execute Job Pipeline with Luigi Orchestration (`--use-luigi`)
+#### Step G: Execute Job Pipeline on CDP YARN Cluster (`spark-submit --use-luigi`)
 ```bash
 spark-submit \
   --master yarn \
@@ -205,48 +235,26 @@ spark-submit \
   --executor-memory 8g \
   --executor-cores 4 \
   --num-executors 10 \
+  --jars /opt/cloudera/jars/ojdbc8.jar,/opt/cloudera/jars/mssql-jdbc.jar \
   --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.2.0 \
   --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
   --conf spark.sql.catalog.hive=org.apache.iceberg.spark.SparkCatalog \
   --conf spark.sql.catalog.hive.type=hive \
   --conf spark.sql.catalog.hive.uri=thrift://cdp-hms-host:9083 \
+  --conf spark.yarn.keytab=/etc/security/keytabs/etl_svc_user.keytab \
+  --conf spark.yarn.principal=etl_svc_user@YOUR_COMPANY_REALM.COM \
   main.py --use-luigi --job config/jobs/custom_sales_pipeline.toml --parallel 4
 ```
 
-#### Step F: Parallel Batch Execution (All Active Tasks in `config/tasks/`)
-Submit multiple task pipelines in parallel using YARN resource pooling:
+#### Step H: Launch Streamlit Web UI Control Panel on CDP Edge Node
 ```bash
-spark-submit \
-  --master yarn \
-  --deploy-mode client \
-  --packages org.apache.iceberg:iceberg-spark-runtime-3.2_2.12:1.2.0 \
-  main.py --config-dir config/tasks --parallel 4
+streamlit run web_ui/app.py --server.port 8501 --server.address 0.0.0.0
 ```
-
-#### Step G: Dry-Run Mode (Validate All Configurations)
-```bash
-python main.py --config-dir config/tasks --dry-run
-```
-
-#### Step H: Automated Failure Recovery / Deduplicated Rerun
-Rerun only failed tasks recorded in `failed_jobs/YYYYMMDD/`:
-```bash
-spark-submit \
-  --master yarn \
-  --deploy-mode client \
-  main.py --rerun-failed 20260815 --parallel 4
-```
+*Access in browser at: `http://<cdp-edge-node-ip>:8501`*
 
 ---
 
 ## 🌐 Streamlit Web UI Control Panel (`web_ui/app.py`)
-
-Launch the interactive, browser-based Web UI on a CDP Edge Node or Gateway Host:
-
-```bash
-streamlit run web_ui/app.py --server.port 8501
-```
-*Access in browser at: `http://localhost:8501`*
 
 ### Web UI Navigation Navbar Modules:
 1. **Dashboard and Bulk Operation**: View filterable task catalogs, validate credentials (`--validate`), execute single/batch tasks with real-time streaming terminal logs.
