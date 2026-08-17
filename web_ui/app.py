@@ -1772,10 +1772,12 @@ def main():
 
         import importlib
         import web_ui.components.dag_canvas as dag_canvas_module
+        import src.helpers.luigi_runner as luigi_runner_module
         importlib.reload(dag_canvas_module)
+        importlib.reload(luigi_runner_module)
         render_interactive_vis_dag = dag_canvas_module.render_interactive_vis_dag
+        LuigiRunner = luigi_runner_module.LuigiRunner
 
-        from src.helpers.luigi_runner import LuigiRunner
         from src.core.job_pipeline import JobPipelineParser
 
         JOBS_DIR = os.path.join("config", "jobs")
