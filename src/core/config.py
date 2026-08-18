@@ -757,6 +757,7 @@ class ExecutionSection:
 
 @dataclass(frozen=True)
 class RetrySection:
+    enabled: bool = True
     max_attempts: int = 3
     delay_seconds: float = 30.0
     backoff_multiplier: float = 2.0
@@ -767,6 +768,7 @@ class RetrySection:
         if not isinstance(data, dict):
             raise ConfigError("Section '[retry]' must be a dictionary.")
 
+        enabled = bool(data.get("enabled", True))
         attempts = data.get("max_attempts") or data.get("retries", 3)
         try:
             attempts = int(attempts)
@@ -788,6 +790,7 @@ class RetrySection:
         exp = bool(data.get("exponential_backoff", True))
 
         return cls(
+            enabled=enabled,
             max_attempts=attempts,
             delay_seconds=delay,
             backoff_multiplier=mult,
