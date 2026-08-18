@@ -26,6 +26,8 @@ credentials.toml
 *.log
 *.sqlite
 running_jobs/
+offline_packages/
+*.tar.gz
 
 # Operating System Files
 .DS_Store
