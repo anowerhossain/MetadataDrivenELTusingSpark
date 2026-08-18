@@ -51,8 +51,24 @@ class IcebergWriter:
             except Exception:
                 return False
 
+    def ensure_database_exists(self) -> None:
+        """Ensures the target catalog database exists, creating it automatically if missing."""
+        if self.spark is None:
+            return
+        database = self.config.database.strip() if self.config.database else ""
+        catalog = self.config.catalog.strip() if self.config.catalog else ""
+        if not database:
+            return
+        full_db = f"{catalog}.{database}" if catalog else database
+        try:
+            self.spark.sql(f"CREATE DATABASE IF NOT EXISTS {full_db}")
+            logger.info(f"Verified/Created target Iceberg database '{full_db}'.")
+        except Exception as err:
+            logger.warning(f"Could not execute CREATE DATABASE IF NOT EXISTS for '{full_db}': {err}")
+
     def create_table(self, df: Any, full_table_name: str) -> None:
         """Creates a new Iceberg table from DataFrame schema, applying target partitioning if configured."""
+        self.ensure_database_exists()
         builder = df.writeTo(full_table_name).using("iceberg")
 
         if self.config.partition and self.config.partition.column:
