@@ -27,6 +27,7 @@ credentials.toml
 *.sqlite
 running_jobs/
 offline_packages/
+jars/
 *.tar.gz
 
 # Operating System Files
