@@ -1,0 +1,12 @@
+[task]
+task_id = "qlik_nprinting_report"
+task_name = "Qlik NPrinting Monthly Financial Report"
+type = "qlik_nprinting"
+enabled = false
+description = "Triggers Qlik NPrinting Report Generation and Distribution"
+
+[qlik_nprinting]
+server_url = "https://nprinting.company.com"
+task_id = "np-task-monthly-finance-2026"
+timeout_seconds = 900
+poll_interval_seconds = 15

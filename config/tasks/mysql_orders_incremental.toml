@@ -1,0 +1,42 @@
+[task]
+task_id = "mysql_orders_incremental"
+task_name = "MySQL Orders Incremental Ingestion"
+type = "table_load"
+enabled = false
+description = "Incremental extraction from MySQL orders table to Bronze Iceberg"
+
+[source]
+type = "mysql"
+connection = "mysql_prod"
+schema = "sales_db"
+table = "orders"
+
+[source.jdbc]
+fetch_size = 10000
+partition_column = "order_id"
+num_partitions = 4
+
+[load]
+type = "INCREMENTAL"
+
+[load.incremental]
+column = "created_at"
+watermark_type = "timestamp"
+
+[target]
+catalog = "hive"
+database = "edw_bronze"
+table = "raw_mysql_orders"
+
+[target.partition]
+type = "days"
+column = "created_at"
+
+[schema]
+evolution = true
+add_columns = true
+
+[retry]
+enabled = true
+max_attempts = 3
+delay_seconds = 10.0

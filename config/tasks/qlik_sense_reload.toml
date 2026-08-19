@@ -1,0 +1,12 @@
+[task]
+task_id = "qlik_sense_reload"
+task_name = "Qlik Sense Executive Dashboard Reload"
+type = "qlik_sense"
+enabled = false
+description = "Triggers Qlik Sense App Reload via QRS REST API"
+
+[qlik_sense]
+server_url = "https://qliksense.company.com"
+app_id = "a1b2c3d4-e5f6-7890-abcd-1234567890ab"
+timeout_seconds = 600
+poll_interval_seconds = 10
