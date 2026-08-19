@@ -205,16 +205,16 @@ class MySQLReader:
         jdbc_options["fetchSize"] = str(tuned_fetch)
 
         if effective_jdbc and effective_jdbc.partition_column:
+            lower_b = effective_jdbc.lower_bound if effective_jdbc.lower_bound is not None else 1
+            upper_b = effective_jdbc.upper_bound if effective_jdbc.upper_bound is not None else 1000000
             logger.info(
                 f"Configuring parallel JDBC extraction: partition_column='{effective_jdbc.partition_column}', "
-                f"num_partitions={effective_jdbc.num_partitions}"
+                f"num_partitions={effective_jdbc.num_partitions}, lower_bound={lower_b}, upper_bound={upper_b}"
             )
             jdbc_options["partitionColumn"] = effective_jdbc.partition_column
             jdbc_options["numPartitions"] = str(effective_jdbc.num_partitions)
-            if effective_jdbc.lower_bound is not None:
-                jdbc_options["lowerBound"] = str(effective_jdbc.lower_bound)
-            if effective_jdbc.upper_bound is not None:
-                jdbc_options["upperBound"] = str(effective_jdbc.upper_bound)
+            jdbc_options["lowerBound"] = str(lower_b)
+            jdbc_options["upperBound"] = str(upper_b)
         else:
             logger.info("Executing standard single-partition JDBC extraction (no JDBC partitioning configured).")
 

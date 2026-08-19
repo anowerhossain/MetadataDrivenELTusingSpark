@@ -1,0 +1,68 @@
+[task]
+task_id = "mysql_complaint_load"
+task_name = "MySQL Customer Complaints Ingestion"
+type = "table_load"
+enabled = true
+description = "Extracts customer complaint records from MySQL into Bronze Apache Iceberg table."
+
+[source]
+type = "mysql"
+connection = "mysql_prod"              # Connection name matching MYSQL_PROD_ credentials
+schema = "crm_db"                      # MySQL Database Name (Change to your MySQL database name)
+table = "complaint"                    # MySQL Source Table Name
+
+[source.extraction]
+columns = [
+    "ID",
+    "REFERENCE_NUMBER",
+    "ACCOUNT_NUMBER",
+    "ACC_NAME",
+    "MOBILE_NUMBER",
+    "EMAIL_ADDRESS",
+    "SEGMENT"
+]
+
+[source.jdbc]
+fetch_size = 25000                     # JDBC batch fetch size
+partition_column = "ID"                # Integer/Key column for parallel split extraction
+num_partitions = 4                     # Number of parallel Spark JDBC read threads
+lower_bound = 1                        # Minimum ID value for partition split
+upper_bound = 1000000                  # Maximum ID value for partition split
+
+[load]
+type = "FULL"                          # FULL overwrite load
+
+[target]
+catalog = "hive"
+database = "edw_bronze"                 # Target Iceberg Database in Hive Metastore (Auto-created if missing)
+table = "raw_complaints"               # Target Iceberg Table Name (Auto-created if missing)
+
+[schema]
+evolution = true
+add_columns = true
+allow_nullable = true
+
+[preload]
+enabled = true
+operations = [
+    "validate_source",
+    "validate_target"
+]
+
+[postload]
+enabled = true
+operations = [
+    "compact_table",
+    "refresh_metadata"
+]
+
+[data_quality]
+enabled = true
+null_check = ["ID", "REFERENCE_NUMBER", "ACCOUNT_NUMBER"]
+unique_check = ["ID"]
+minimum_rows = 1
+
+[retry]
+enabled = true
+max_attempts = 3
+delay_seconds = 10.0
