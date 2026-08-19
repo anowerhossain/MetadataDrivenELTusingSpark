@@ -163,7 +163,7 @@ When copying the project to a CDP Gateway Host / Edge Node (e.g. `/opt/cloudera/
 | `templates/` | ✅ **REQUIRED** | Responsive HTML email alert templates. |
 | `web_ui/` | 💡 *OPTIONAL* | Streamlit Control Center UI (Required if running Web UI on Edge Node). |
 | `requirements.txt` | ✅ **REQUIRED** | Python dependencies (`tomli`, `pytz`, `requests`, `streamlit`, `pandas`, `luigi`). |
-| `tests/` | ❌ **EXCLUDE** | Local unit test suite (Exclude from prod deployment). |
+| `UnitTest/` | ❌ **EXCLUDE** | Local unit test suite (Exclude from prod deployment). |
 | `scratch/` | ❌ **EXCLUDE** | Scratch development scripts (Exclude from prod deployment). |
 | `.git/` | ❌ **EXCLUDE** | Git repository metadata (Exclude from prod deployment). |
 
@@ -394,5 +394,5 @@ Extraction_v2.1/
 │       ├── tuner.py            # Spark Resource & Fetch Size Tuner
 │       ├── email_notification.py # Email Delivery & etl_email_audit Persistence
 │       └── email_template.py   # Reusable HTML Template Engine & HTML Tables
-└── tests/                      # Automated Unit Test Suite (Passing)
+└── UnitTest/                   # Automated Unit Test Suite (Passing)
 ```
