@@ -1,0 +1,25 @@
+[job]
+job_id = "parallel_job_pipeline"
+job_name = "Parallel Multi-Source Ingestion Pipeline"
+description = "Executes multiple independent Bronze database ingestion tasks concurrently in parallel Luigi worker threads."
+enabled = true
+
+[[job.tasks]]
+task_id = "oracle_employees_to_iceberg"
+task_file = "config/tasks/oracle_employees_to_iceberg.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "mysql_orders"
+task_file = "config/tasks/mysql_orders.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "postgres_payments"
+task_file = "config/tasks/postgres_payments.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "sqlserver_invoices"
+task_file = "config/tasks/sqlserver_invoices.toml"
+depends_on = []

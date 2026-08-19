@@ -1,0 +1,44 @@
+[job]
+job_id = "complex_job_pipeline"
+job_name = "Complex Medallion Enterprise & Qlik Pipeline"
+description = "Full Medallion architecture: Multi-source Bronze Ingestion -> Silver Cleansing -> Gold Aggregation -> Qlik Reload & NPrinting Reports."
+enabled = true
+
+# --- Tier 1: Bronze Ingestion (Parallel Roots) ---
+[[job.tasks]]
+task_id = "oracle_employees_to_iceberg"
+task_file = "config/tasks/oracle_employees_to_iceberg.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "mysql_orders"
+task_file = "config/tasks/mysql_orders.toml"
+depends_on = []
+
+[[job.tasks]]
+task_id = "sftp_invoices_csv"
+task_file = "config/tasks/sftp_invoices_csv.toml"
+depends_on = []
+
+# --- Tier 2: Silver Transformations ---
+[[job.tasks]]
+task_id = "silver_orders_clean"
+task_file = "config/tasks/silver_orders_clean.toml"
+depends_on = ["mysql_orders", "sftp_invoices_csv"]
+
+# --- Tier 3: Gold Analytics & Reporting ---
+[[job.tasks]]
+task_id = "gold_executive_report"
+task_file = "config/tasks/gold_executive_report.toml"
+depends_on = ["silver_orders_clean", "oracle_employees_to_iceberg"]
+
+# --- Tier 4: Qlik Integration Tasks ---
+[[job.tasks]]
+task_id = "qlik_sense_reload"
+task_file = "config/tasks/qlik_sense_reload.toml"
+depends_on = ["gold_executive_report"]
+
+[[job.tasks]]
+task_id = "qlik_nprinting_report"
+task_file = "config/tasks/qlik_nprinting_report.toml"
+depends_on = ["qlik_sense_reload"]

@@ -1,8 +1,7 @@
-# Higher-Level Enterprise Job Pipeline TOML Configuration
 [job]
-job_id = "customer_sales_pipeline"
-job_name = "End-to-End Customer Sales Ingestion & Analytics Job"
-description = "Orchestrates Bronze ingestion, Silver transformation, and Gold Qlik report reload in sequence."
+job_id = "simple_job_pipeline"
+job_name = "Simple Linear Medallion Pipeline"
+description = "Simple 2-step linear pipeline: Bronze Ingestion -> Silver Transformation"
 enabled = true
 
 [[job.tasks]]
